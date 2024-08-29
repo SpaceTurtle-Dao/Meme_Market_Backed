@@ -1,7 +1,7 @@
 
 **Models**
 
-**PostRequest Object**
+**MemeRequest Object**
 ```lua
 {
     Kind = Number,
@@ -12,18 +12,22 @@
 }
 ```
 
-**Post Object**
+**Meme Object**
 ```lua
  {
-    Id = string,
-    ProcessId = string,
+    Pool = string,
     Creator = string,
-    Created_at = Number,
+    TokenA = string,
+    TokenB = string,
+    Denomination = Default_Denomination,
+    Supply = Default_Supply,
+    Holders = {},
     Kind = Number,
     Tags = [string],
     Content = string,
     Engagement = {},
     Analytics = {}
+    Created_at = Number,
 }
 ```
 **Engagement Object**
@@ -57,13 +61,13 @@
 ```
 **Endpoints**
 
-**Post**
+**Meme**
 ```lua
 --creates a token, a pool and makes the creator the only liquidty provider using amount specified by the creator
 ao.send({
     Target = ProcessId,
-    Action = 'Post',
-    Data = postRequest
+    Action = 'Meme',
+    Data = MemeRequest
 })
 ```
 **Reply**
@@ -71,8 +75,8 @@ ao.send({
 ao.send({
     Target = ProcessId,
     Action = 'Reply',
-    Data = postRequest
-    PostId = 0
+    Data = MemeRequest
+    MemeId = 0
 })
 ```
 
@@ -81,7 +85,7 @@ ao.send({
 ao.send({
     Target = ProcessId,
     Action = 'Pump',
-    PostId = 0,
+    MemeId = 0,
     Amount = 100
 })
 ```
@@ -91,48 +95,48 @@ ao.send({
 ao.send({
     Target = ProcessId,
     Action = 'Dump',
-    PostId = 0,
+    MemeId = 0,
     Amount = 100
 })
 ```
 
-**Get Post**
+**Get Meme**
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'getPost',
-    postId = 0
+    Action = 'GetMeme',
+    MemeId = 0
 })
---returns post object
+--returns Meme object
 ```
 
-**Fetch Post**
+**Fetch Meme**
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'fetchPost',
+    Action = 'FetchMemes',
     Page = 0
     Size = 100
 })
---returns an Array of post object
+--returns an Array of Meme object
 ```
 
 **Fetch Feed**
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'fetchFeed',
+    Action = 'FetchFeed',
     Page = 0
     Size = 100
 })
---returns an Array of post object orded in decending order by marketcap
+--returns an Array of Meme object orded in decending order by marketcap
 ```
 
 **Fetch Likes**
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'fetchLikes',
+    Action = 'FetchLikes',
     Page = 0
     Size = 100
 })
@@ -143,9 +147,9 @@ ao.send({
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'fetchReplies',
+    Action = 'FetchReplies',
     Replies = [string]
 })
---returns an Array of Post Objects
+--returns an Array of Meme Objects
 ```
 
