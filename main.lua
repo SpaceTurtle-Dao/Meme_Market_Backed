@@ -26,20 +26,6 @@ if not Liquidity then Liquidity = {} end;
 if not Swaps then Swaps = {}; end
 if not TotalSupply then TotalSupply = {}; end
 
-Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-Notice"), function(msg)
-    CreditNotice(msg)
-end);
-
-Handlers.add('TokenModule', Handlers.utils.hasMatchingTag('Action', 'TokenModule'), function(msg)
-    TokenModule = msg.Data;
-    Utils.result(msg.From, 200, msg.Data);
-end)
-
-Handlers.add('PoolModule', Handlers.utils.hasMatchingTag('Action', 'PoolModule'), function(msg)
-    PoolModule = msg.Data;
-    Utils.result(msg.From, 200, msg.Data);
-end)
-
 Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
     if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
     if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
@@ -225,4 +211,18 @@ Handlers.add('Bonded', Handlers.utils.hasMatchingTag('Action', 'Bonded'), functi
     local meme = Memes[msg.From];
     meme.isPump = false;
     Memes[msg.From] = meme;
+end)
+
+Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-Notice"), function(msg)
+    CreditNotice(msg)
+end);
+
+Handlers.add('TokenModule', Handlers.utils.hasMatchingTag('Action', 'TokenModule'), function(msg)
+    TokenModule = msg.Data;
+    Utils.result(msg.From, 200, msg.Data);
+end)
+
+Handlers.add('PoolModule', Handlers.utils.hasMatchingTag('Action', 'PoolModule'), function(msg)
+    PoolModule = msg.Data;
+    Utils.result(msg.From, 200, msg.Data);
 end)
