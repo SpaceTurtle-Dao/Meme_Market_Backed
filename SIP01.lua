@@ -25,21 +25,6 @@ function SIP01(creator, created_at, tags, content,Kind)
     Memes[tostring(currentId)] = mip
 end
 
-function FetchMIP01(pageNumber,pageSize)
-    local startIndex = (pageNumber - 1) * pageSize + 1
-    local endIndex = startIndex + pageSize - 1
-    local paginatedResult = {}
-
-    for i = startIndex, endIndex do
-        if Memes[i] == nil then
-            break
-        end
-        table.insert(paginatedResult, Memes[i])
-    end
-
-    return paginatedResult
-end
-
 function GetMIP01(id)
     if Memes[id] == nil then return end
     return Memes[id]

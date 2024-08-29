@@ -1,0 +1,39 @@
+{
+    "name": "swap",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "dependencies": {
+        "@permaweb/aoconnect": "^0.0.59",
+        "arconnect": "^0.4.2",
+        "arweave": "^1.15.1",
+        "asn1.js": "^5.4.1",
+        "base64-js": "^1.5.1",
+        "base64url": "^3.0.1",
+        "bignumber.js": "^9.1.2",
+        "bn.js": "^4.12.0",
+        "buffer": "^6.0.3",
+        "debug": "^4.3.5",
+        "hyper-async": "^1.1.2",
+        "ieee754": "^1.2.1",
+        "inherits": "^2.0.4",
+        "lru-cache": "^10.3.0",
+        "minimalistic-assert": "^1.0.1",
+        "mnemonist": "^0.39.8",
+        "ms": "^2.1.2",
+        "obliterator": "^2.0.4",
+        "ramda": "^0.29.1",
+        "safer-buffer": "^2.1.2",
+        "undici": "^5.28.4",
+        "warp-arbundles": "^1.0.4",
+        "warp-isomorphic": "^1.0.7",
+        "zod": "^3.23.8"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "node index.js"
+    },
+    "author": "",
+    "license": "ISC"
+}
