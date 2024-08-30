@@ -25,13 +25,13 @@ Utils = {
         return tostring(bint(a) + bint(b))
     end,
     subtract = function(a, b)
-        return tostring(bint.__sub(a,b))
+        return tostring(bint.__sub(a, b))
     end,
     mul = function(a, b)
-        return tostring(bint.__mul(a,b))
+        return tostring(bint.__mul(a, b))
     end,
     div = function(a, b)
-        return tostring(bint.tdiv(tonumber(a),tonumber(b)))
+        return tostring(bint.tdiv(tonumber(a), tonumber(b)))
     end,
     toBalanceValue = function(a)
         return tostring(bint(a))
@@ -51,7 +51,7 @@ Handlers.add('Init', Handlers.utils.hasMatchingTag('Action', 'Init'), function(m
     assert(msg.From == Owner, "Not Authorized");
     assert(IsActive == false, "Pool is already active");
     Meme = json.decode(msg.Meme);
-    local quantity = Utils.subtract(Meme.Supply,Meme.AmountA);
+    local quantity = Utils.subtract(Meme.Supply, Meme.AmountA);
     IsPump = Meme.IsPump;
     TokenModule = msg.Data;
     TokenBProcess = Meme.TokenB;
@@ -123,19 +123,13 @@ Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-No
     CreditNotice(msg)
 end);
 
+Handlers.add("Debit-Notice", Handlers.utils.hasMatchingTag('Action', "Debit-Notice"), function(msg)
+    DebitNotice(msg)
+end);
+
 Handlers.add('Info', Handlers.utils.hasMatchingTag('Action', 'Info'), function(msg)
     Info(msg)
 end)
-
-function Init(tokenA, tokenB, bondingCurve, Creator)
-    TokenAProcess = tokenA;
-    TokenBProcess = tokenB;
-    Creator = Creator;
-    BondingCurve = bondingCurve;
-    Balances[TokenAProcess] = {};
-    Balances[TokenBProcess] = {};
-    ao.spawn(Module, {})
-end
 
 --[[function InitalLiquidity(from, amountA, amountB)
     if not Shares[from] then Shares[from] = 0 end;
@@ -155,13 +149,13 @@ end
     Shares[from] = _share + _Share;
     TotalShares = TotalShares + _Share;
     IsActive = true;
-end]]--
+end]] --
 
 function Add(from, amountA, amountB)
     --[[if IsActive == false then
         InitalLiquidity(from, amountA, amountB);
         return
-    end]]--
+    end]] --
     if not Shares[from] then Shares[from] = 0 end;
     _Share = 0;
     local isValidA = IsValid(from, TokenAProcess, amountA)
@@ -240,100 +234,123 @@ end
 function SwapA(from, amount, slippage, timestamp)
     if Utils.toNumber(TotalShares) <= 0 and IsPump == false then
         Utils.result(from, 403, "Total Shares less then or equal to 0")
+        ao.send({
+            Target = TokenA,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     local estimate = GetSwapTokenAEstimate(amount);
     if estimate <= Utils.toNumber(slippage) then
-        Utils.result(from, 403, "slippage "..estimate)
+        Utils.result(from, 403, "slippage " .. estimate)
+        ao.send({
+            Target = TokenA,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     if Utils.toNumber(TokenB) <= 0 then
-        Utils.result(from, 403, "No funds available "..estimate)
+        Utils.result(from, 403, "No funds available " .. estimate)
+        ao.send({
+            Target = TokenA,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     if Utils.toNumber(TokenB) < estimate then
-        Utils.result(from, 403, "Insufficient funds available "..estimate)
+        Utils.result(from, 403, "Insufficient funds available " .. estimate)
+        ao.send({
+            Target = TokenA,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     local isValid = IsValid(from, TokenAProcess, amount)
     if isValid ~= true then
-        Utils.result(from, 403, "Insufficient funds "..estimate)
+        Utils.result(from, 403, "Insufficient funds " .. estimate)
+        ao.send({
+            Target = TokenA,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
-    SubstractBalance(from, TokenAProcess, amount);
-    AddBalance(from, TokenBProcess, estimate);
-    TokenA = TokenA + amount;
-    TokenB = TokenB - Utils.toBalanceValue(estimate);
-    local liquidity = GetLiquidity();
-    if liquidity >= Utils.toNumber(BondingCurve) then
-        IsPump = false;
-        ao.send({
-            Target = Owner,
-            Action = "Bonded"
-        });
-    end
-    local _swap = {
-        isBuy = false,
-        tokenA = tostring(estimate),
-        tokenB = tostring(amount),
-        timestamp = timestamp
-    };
     ao.send({
-        Target = Owner,
-        Action = "Swap",
-        Swap = json.encode(_swap),
-        Liquidity = tostring(liquidity),
-        TokenA = TokenAProcess
+        Target = TokenB,
+        Action = "Transfer",
+        Recipient = from,
+        Quantity = estimate,
     });
 end
 
 function SwapB(from, amount, slippage, timestamp)
     if Utils.toNumber(TotalShares) <= 0 and IsPump == false then
         Utils.result(from, 403, "Total Shares less then or equal to 0")
+        ao.send({
+            Target = TokenB,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     local estimate = GetSwapTokenBEstimate(amount);
     if estimate <= Utils.toNumber(slippage) then
-        Utils.result(from, 403, "slippage " .."estimate " ..estimate .."slippage "..slippage)
+        Utils.result(from, 403, "slippage " .. "estimate " .. estimate .. "slippage " .. slippage)
+        ao.send({
+            Target = TokenB,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     if Utils.toNumber(TokenA) <= 0 then
         Utils.result(from, 403, "No funds available")
+        ao.send({
+            Target = TokenB,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     if Utils.toNumber(TokenA) < estimate then
-        Utils.result(from, 403, "Insufficient funds available " .."estimate " ..estimate .."TokenA "..TokenA)
+        Utils.result(from, 403, "Insufficient funds available " .. "estimate " .. estimate .. "TokenA " .. TokenA)
+        ao.send({
+            Target = TokenB,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
     local isValid = IsValid(from, TokenBProcess, amount)
     if isValid ~= true then
-        Utils.result(from, 403, "Insufficient funds "..estimate)
+        Utils.result(from, 403, "Insufficient funds " .. estimate)
+        ao.send({
+            Target = TokenB,
+            Action = "Transfer",
+            Recipient = from,
+            Quantity = amount,
+        });
         return
     end;
-    SubstractBalance(from, TokenBProcess, amount);
-    AddBalance(from, TokenAProcess, estimate);
-    TokenB = TokenB + amount;
-    TokenA = TokenA - Utils.toBalanceValue(estimate);
-    local liquidity = GetLiquidity();
-    if liquidity >= Utils.toNumber(BondingCurve) then
-        IsPump = false;
-        ao.send({
-            Target = Owner,
-            Action = "Bonded"
-        });
-    end
-    local _swap = {
-        isBuy = true,
-        tokenA = tostring(estimate),
-        tokenB = tostring(amount),
-        timestamp = timestamp
-    };
+
     ao.send({
-        Target = Owner,
-        Action = "Swap",
-        Swap = json.encode(_swap),
-        Liquidity = tostring(liquidity),
-        TokenA = TokenAProcess
+        Target = TokenA,
+        Action = "Transfer",
+        Recipient = from,
+        Quantity = estimate,
     });
 end
 
@@ -352,10 +369,64 @@ function CreditNotice(msg)
         end;
         return
     end
-    if not Balances[msg.From] then Balances[msg.From] = {} end;
-    if not Balances[msg.From][msg.Sender] then Balances[msg.From][msg.Sender] = msg.Quantity end;
-    local balance = Balances[msg.From][msg.Sender];
-    Balances[msg.From][msg.Sender] = balance + msg.Quantity;
+
+    assert(IsActive, "Pool must be active")
+    if (msg['X-Swap'] and msg['X-Slippage']) then
+        if msg.From == TokenAProcess then
+            TokenA = TokenA + msg.Quantity;
+            SwapA(msg.Sender, msg.Quantity, msg['X-Slippage'], msg.Timestamp);
+        else
+            TokenB = TokenB + msg.Quantity;
+            SwapB(msg.Sender, msg.Quantity, msg['X-Slippage'], msg.Timestamp);
+        end
+    else
+        AddBalance(msg.Sender, msg.From, msg.Quantity); 
+    end
+end
+
+function DebitNotice(msg)
+    local swap = {};
+    if (msg['X-Estimate']) then
+        if msg.From == TokenAProcess then
+            TokenA = TokenA - msg.Quantity;
+            swap = {
+                isBuy = true,
+                tokenA = msg.Quantity,
+                tokenB = msg['X-Estimate'],
+                timestamp = msg.Timestamp
+            };
+        else
+            TokenB = TokenB - msg.Quantity;
+            swap = {
+                isBuy = false,
+                tokenA = msg['X-Estimate'],
+                tokenB = msg.Quantity,
+                timestamp = msg.Timestamp
+            };
+        end
+    else
+        if msg.From == TokenAProcess then
+            TokenA = TokenA - msg.Quantity;
+        else
+            TokenB = TokenB - msg.Quantity;
+        end
+    end
+
+    local liquidity = GetLiquidity();
+    if liquidity >= Utils.toNumber(BondingCurve) then
+        IsPump = false;
+        ao.send({
+            Target = Owner,
+            Action = "Bonded"
+        });
+    end
+    ao.send({
+        Target = Owner,
+        Action = "Swap",
+        Swap = json.encode(swap),
+        Liquidity = tostring(liquidity),
+        TokenA = TokenAProcess
+    });
 end
 
 function Info(msg)
@@ -452,7 +523,7 @@ end
 function GetSwapTokenAEstimate(amount)
     local _price = Price();
     local tokenA = Utils.add(TokenA, amount);
-    local tokenB = Utils.div(_price,tokenA);
+    local tokenB = Utils.div(_price, tokenA);
     local amountB = Utils.subtract(TokenB, tokenB);
     if amountB == TokenB then amountB = Utils.subtract(amountB, "1"); end --To ensure that the pool is not completely depleted
     return math.floor(Utils.toNumber(amountB))
@@ -462,8 +533,8 @@ function GetSwapTokenBEstimate(amount)
     local _price = Price();
     local tokenB = Utils.add(TokenB, amount);
     local tokenA = Utils.div(_price, tokenB);
-    local amountA = Utils.subtract(TokenA,tokenA);
-    if amountA == TokenA then amountA = Utils.subtract(amountA,"1"); end --To ensure that the pool is not completely depleted
+    local amountA = Utils.subtract(TokenA, tokenA);
+    if amountA == TokenA then amountA = Utils.subtract(amountA, "1"); end --To ensure that the pool is not completely depleted
     return math.floor(Utils.toNumber(amountA))
 end
 
@@ -481,7 +552,7 @@ end
 function SubstractBalance(owner, token, amount)
     local _balance = Balances[token][owner];
     local _amount = _balance - amount;
-    Balances[token][owner] = Utils.toBalanceValue(_amount); 
+    Balances[token][owner] = Utils.toBalanceValue(_amount);
 end
 
 function GetLiquidity()

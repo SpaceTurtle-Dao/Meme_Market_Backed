@@ -26,6 +26,12 @@ if not Liquidity then Liquidity = {} end;
 if not Swaps then Swaps = {}; end
 if not TotalSupply then TotalSupply = {}; end
 
+--[[MemeRequest = {}
+ProfileMemes = {}
+Profiles = {}
+Memes = {}
+MIP_ID = 0]]--
+
 Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
     if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
     if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
