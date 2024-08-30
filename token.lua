@@ -56,7 +56,7 @@ local utils = {
 Variant = "0.0.3"
 
 -- token should be idempotent and not change previous state updates
-Minter = "UOI4I9LmzHkobEIvs52vzY4SWk9FPi7JiYSHe4ZGmCI"
+Minter = "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc"
 Denomination = 12
 Balances = {}
 TotalSupply = 0

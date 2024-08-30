@@ -2,7 +2,7 @@ local bint = require('.bint')(256)
 local ao = require('ao')
 local json = require('json');
 
-WrappedArweave = "alfdQEEouvIvFDvhWRqImYesC_YVZ5FvFzc442I-QMI"; -- change to before launch Process Id for wAr tokens
+WrappedArweave = "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc"; -- change to before launch Process Id for wAr tokens
 Module = "Pq2Zftrqut0hdisH_MC2pDOT6S4eQFoxGsFUzR6r350";
 MINUTE = 60000
 HOUR = MINUTE * 60;
@@ -45,35 +45,6 @@ Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), func
     Utils.result(msg.From, 200, "Created Profile");
 end)
 
-Handlers.add('Meme', Handlers.utils.hasMatchingTag('Action', 'Meme'), function(msg)
-    if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
-    if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
-    local balance = Balances[WrappedArweave][msg.From];
-    if balance <= 0 then return end;
-    local request = json.decode(msg.Data);
-    local currentId = MIP_ID;
-    MIP_ID = MIP_ID + 1;
-    local post = {
-        Id = currentId,
-        Kind = request.Kind,
-        Tags = request.Tags,
-        Content = request.Content
-    };
-    local meme = {
-        Post = post,
-        AmountA = msg.AmountA,
-        AmountB = msg.AmountB,
-        Module = Module,
-        isPump = true,
-        IsActive = false,
-        createdAt = msg.Timestamp,
-        Creator = msg.From,
-    };
-    table.insert(MemeRequest, meme)
-    ao.spawn(Module, {})
-    Utils.result(msg.From, 200, "Created Meme", "Transaction");
-end)
-
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
     assert(msg.From == ao.id, "Not Authorized");
     local request = table.remove(MemeRequest, 1);
@@ -87,7 +58,7 @@ Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), func
     request.Engagement = {};
     Memes[msg.Process] = request;
     if not ProfileMemes[request.Creator] then ProfileMemes[request.Creator] = {} end;
-    table.insert(ProfileMemes[request.Creator], msg.Process)    ;
+    table.insert(ProfileMemes[request.Creator], msg.Process);
     ao.send({
         Target = msg.Process,
         Action = "Eval",
@@ -98,7 +69,7 @@ end)
 Handlers.add('Request', Handlers.utils.hasMatchingTag('Action', 'Request'), function(msg)
     local meme = Memes[msg.From];
     ao.send({
-        Target = meme.TokenB,
+        Target = TokenB,
         Action = "Transfer",
         Recipient = meme.Pool,
         Quantity = meme.AmountB,
@@ -178,26 +149,21 @@ Handlers.add('Holders', Handlers.utils.hasMatchingTag('Action', 'Holders'), func
 end)
 
 Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes'), function(msg)
-    local _Memes = Fetch(Memes,Utils.toNumber(msg.Page),Utils.toNumber(msg.Size));
+    local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
         v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
         v.Engagement = {};
         table.insert(Results, v);
-        ao.send({
-            Target = msg.From,
-            Data = json.encode(v)
-        });
-        break
     end;
     ao.send({
         Target = msg.From,
-        Data = json.encode(Results)
+        Data = json.encode(_Memes)
     });
 end)
 
 Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'FetchProfileMemes'), function(msg)
-    local _Memes = Fetch(Memes,Utils.toNumber(msg.Page),Utils.toNumber(msg.Size));
+    local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
         if v.Creator == msg.Profile then
@@ -213,7 +179,7 @@ Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'Fetch
 end)
 
 Handlers.add('FetchProfiles', Handlers.utils.hasMatchingTag('Action', 'FetchProfiles'), function(msg)
-    local _Profiles = Fetch(Profiles,Utils.toNumber(msg.Page),Utils.toNumber(msg.Size));
+    local _Profiles = Fetch(Profiles, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     ao.send({
         Target = msg.From,
         Data = json.encode(_Profiles)
@@ -288,11 +254,39 @@ Utils = {
     end
 }
 
+function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp)
+    local currentId = MIP_ID;
+    MIP_ID = MIP_ID + 1;
+    local post = {
+        Id = currentId,
+        Kind = Kind,
+        Tags = Tags,
+        Content = Content
+    };
+    local meme = {
+        Post = post,
+        AmountA = AmountA,
+        AmountB = AmountB,
+        Module = Module,
+        isPump = true,
+        IsActive = false,
+        createdAt = Timestamp,
+        Creator = From,
+    };
+    table.insert(MemeRequest, meme)
+    ao.spawn(Module, {})
+    Utils.result(From, 200, "Created Meme", "Transaction");
+end
+
 function CreditNotice(msg)
-    if not Balances[msg.From] then Balances[msg.From] = {} end;
-    if not Balances[msg.From][msg.Sender] then Balances[msg.From][msg.Sender] = 0 end;
-    local balance = Balances[msg.From][msg.Sender];
-    Balances[msg.From][msg.Sender] = Utils.toNumber(balance) + Utils.toNumber(msg.Quantity);
+    if (msg.From == WrappedArweave) then
+        local Kind = msg['X-Kind'];
+        local Tags = json.decode(msg['X-Tags']);
+        local Content = msg['X-Content'];
+        local AmountA = msg['X-Amount'];
+        local AmountB = msg.Quantity;
+        Meme(msg.From, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp);
+    end
 end
 
 function AnalyticsData(pool, timestamp)
@@ -451,17 +445,17 @@ function Spairs(t, order)
     end
 end
 
-function Fetch(tbl,page,size)
+function Fetch(tbl, page, size)
     local tempArray = {}
     for k, v in pairs(tbl) do
-        table.insert(tempArray,v)
+        table.insert(tempArray, v)
     end
     local start = (page - 1) * size + 1
     local endPage = page * size
     local result = {};
     for i = start, endPage do
         if tempArray[i] then
-            table.insert(result,tempArray[i])
+            table.insert(result, tempArray[i])
         else
             break
         end
