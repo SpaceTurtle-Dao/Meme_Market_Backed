@@ -129,7 +129,7 @@ Handlers.add('Holders', Handlers.utils.hasMatchingTag('Action', 'Holders'), func
     local count = 0;
     local top10 = 0;
     local dev = 0;
-    local meme = Memes[msg.Meme];
+    local meme = Memes[msg.Pool];
     for k, v in Spairs(_balances, function(t, a, b) return t[b] < t[a] end) do
         if k == msg.Minter then
             dev = Utils.toNumber(v) / Utils.toNumber(msg.Supply);

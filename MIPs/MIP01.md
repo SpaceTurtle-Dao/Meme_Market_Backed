@@ -4,11 +4,38 @@
 **MemeRequest Object**
 ```lua
 {
-    Kind = Number,
-    Tags = [string], --array of processIds
-    Content = string, --<arbitrary stringified JSON object or string depending on kind>
-    AmountA = string,
-    AmountB = string,
+  "process": "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc",
+  "data": "",
+  "tags": [
+    {
+      "name": "Action",
+      "value": "Transfer"
+    },
+    {
+      "name": "Quantity",
+      "value": "1000000000000"
+    },
+    {
+      "name": "Recipient",
+      "value": "Pool process"
+    },
+    {
+      "name": "'X-Kind'",
+      "value": "1"
+    },
+    {
+      "name": "X-Tags",
+      "value": "[]"
+    },
+    {
+      "name": "X-Content",
+      "value": "Whats up"
+    },
+    {
+      "name": "X-Amount",
+      "value": "1000000000000000000"
+    }
+  ]
 }
 ```
 

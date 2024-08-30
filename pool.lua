@@ -6,8 +6,8 @@ if not TokenInfo then TokenInfo = {} end;
 if not Shares then Shares = {} end;
 if not Balances then Balances = {} end;
 
-TotalShares = "10000000000000000000";
-Precision = "100000000000000000";
+TotalShares = "100000000000000";
+Precision = "1000000000000";
 FeeRate = "0.01" -- Fee rate (1% in this example)
 TokenA = "";
 TokenB = "";
@@ -235,18 +235,18 @@ function SwapA(from, amount, slippage)
     if Utils.toNumber(TotalShares) <= 0 and IsPump == false then
         Utils.result(from, 403, "Total Shares less then or equal to 0")
         ao.send({
-            Target = TokenA,
+            Target = TokenAProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
         });
         return
     end;
-    local estimate = GetSwapTokenAEstimate(amount);
+    local estimate = GetSwapTokenBEstimate(amount);
     if estimate <= Utils.toNumber(slippage) then
         Utils.result(from, 403, "slippage " .. estimate)
         ao.send({
-            Target = TokenA,
+            Target = TokenAProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
@@ -256,7 +256,7 @@ function SwapA(from, amount, slippage)
     if Utils.toNumber(TokenB) <= 0 then
         Utils.result(from, 403, "No funds available " .. estimate)
         ao.send({
-            Target = TokenA,
+            Target = TokenAProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
@@ -266,38 +266,28 @@ function SwapA(from, amount, slippage)
     if Utils.toNumber(TokenB) < estimate then
         Utils.result(from, 403, "Insufficient funds available " .. estimate)
         ao.send({
-            Target = TokenA,
+            Target = TokenAProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
         });
         return
     end;
-    local isValid = IsValid(from, TokenAProcess, amount)
-    if isValid ~= true then
-        Utils.result(from, 403, "Insufficient funds " .. estimate)
-        ao.send({
-            Target = TokenA,
-            Action = "Transfer",
-            Recipient = from,
-            Quantity = amount,
-        });
-        return
-    end;
+ 
     ao.send({
-        Target = TokenB,
+        Target = TokenBProcess,
         Action = "Transfer",
         Recipient = from,
-        Quantity = estimate,
+        Quantity = string.format("%.0f", estimate),
         ['X-Swap'] = amount
     });
 end
 
-function SwapB(from, amount, slippage, timestamp)
+function SwapB(from, amount, slippage)
     if Utils.toNumber(TotalShares) <= 0 and IsPump == false then
         Utils.result(from, 403, "Total Shares less then or equal to 0")
         ao.send({
-            Target = TokenB,
+            Target = TokenBProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
@@ -306,9 +296,9 @@ function SwapB(from, amount, slippage, timestamp)
     end;
     local estimate = GetSwapTokenBEstimate(amount);
     if estimate <= Utils.toNumber(slippage) then
-        Utils.result(from, 403, "slippage " .. "estimate " .. estimate .. "slippage " .. slippage)
+        Utils.result(from, 403, "slippage " .. "estimate " .. tostring(estimate) .. "slippage " .. slippage)
         ao.send({
-            Target = TokenB,
+            Target = TokenBProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
@@ -318,7 +308,7 @@ function SwapB(from, amount, slippage, timestamp)
     if Utils.toNumber(TokenA) <= 0 then
         Utils.result(from, 403, "No funds available")
         ao.send({
-            Target = TokenB,
+            Target = TokenBProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
@@ -326,32 +316,20 @@ function SwapB(from, amount, slippage, timestamp)
         return
     end;
     if Utils.toNumber(TokenA) < estimate then
-        Utils.result(from, 403, "Insufficient funds available " .. "estimate " .. estimate .. "TokenA " .. TokenA)
+        Utils.result(from, 403, "Insufficient funds available " .. "estimate " .. tostring(estimate) .. "TokenA " .. TokenA)
         ao.send({
-            Target = TokenB,
+            Target = TokenBProcess,
             Action = "Transfer",
             Recipient = from,
             Quantity = amount,
         });
         return
     end;
-    local isValid = IsValid(from, TokenBProcess, amount)
-    if isValid ~= true then
-        Utils.result(from, 403, "Insufficient funds " .. estimate)
-        ao.send({
-            Target = TokenB,
-            Action = "Transfer",
-            Recipient = from,
-            Quantity = amount,
-        });
-        return
-    end;
-
     ao.send({
-        Target = TokenA,
+        Target = TokenAProcess,
         Action = "Transfer",
         Recipient = from,
-        Quantity = estimate,
+        Quantity = string.format("%.0f", estimate),
         ['X-Swap'] = amount
     });
 end
@@ -360,13 +338,11 @@ function CreditNotice(msg)
     assert(IsActive, "Pool must be active")
     if (msg['X-Swap'] and msg['X-Slippage']) then
         if msg.From == TokenAProcess then
-            TokenA = TokenA + msg.Quantity;
             SwapA(msg.Sender, msg.Quantity, msg['X-Slippage']);
-        else
-            TokenB = TokenB + msg.Quantity;
+        elseif msg.From == TokenBProcess then
             SwapB(msg.Sender, msg.Quantity, msg['X-Slippage']);
         end
-    elseif msg.From == Owner then
+    elseif msg.Sender == Owner then
         if msg.From == TokenAProcess then
             TokenA = TokenA + msg.Quantity;
         else
@@ -386,6 +362,7 @@ function DebitNotice(msg)
     local swap = {};
     if (msg['X-Swap']) then
         if msg.From == TokenAProcess then
+            TokenB = TokenB + msg['X-Swap'];
             TokenA = TokenA - msg.Quantity;
             swap = {
                 isBuy = true,
@@ -394,6 +371,7 @@ function DebitNotice(msg)
                 timestamp = msg.Timestamp
             };
         else
+            TokenA = TokenA + msg['X-Swap'];
             TokenB = TokenB - msg.Quantity;
             swap = {
                 isBuy = false,
@@ -524,7 +502,7 @@ function GetSwapTokenAEstimate(amount)
     local tokenB = Utils.div(_price, tokenA);
     local amountB = Utils.subtract(TokenB, tokenB);
     if amountB == TokenB then amountB = Utils.subtract(amountB, "1"); end --To ensure that the pool is not completely depleted
-    return math.floor(Utils.toNumber(amountB))
+    return math.floor(Utils.toNumber(amountB)); 
 end
 
 function GetSwapTokenBEstimate(amount)
@@ -533,7 +511,7 @@ function GetSwapTokenBEstimate(amount)
     local tokenA = Utils.div(_price, tokenB);
     local amountA = Utils.subtract(TokenA, tokenA);
     if amountA == TokenA then amountA = Utils.subtract(amountA, "1"); end --To ensure that the pool is not completely depleted
-    return math.floor(Utils.toNumber(amountA))
+    return math.floor(Utils.toNumber(amountA)); 
 end
 
 function Price()
