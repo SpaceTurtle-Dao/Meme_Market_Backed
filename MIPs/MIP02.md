@@ -1,13 +1,5 @@
 **Model**
 
-**ProfileRequest Object**
-
-```lua
-{
-    name = string,
-    image = string
-}
-```
 **Profile Object**
 ```lua
 {
@@ -25,7 +17,8 @@
 ao.send({
     Target = ProcessId,
     Action = 'Profile',
-    Data = profileRequest
+    Name = "spaceturtle",
+    Image = "arweave transaction"
 })
 ```
 
@@ -33,8 +26,8 @@ ao.send({
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'getProfile',
-    owner = owner
+    Action = 'GetProfile',
+    Profile = "ProcessId of profile owner"
 })
 --returns post object
 ```
@@ -43,7 +36,7 @@ ao.send({
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'fetchProfiles',
+    Action = 'FetchProfiles',
     Page = 0
     Size = 100
 })
@@ -53,7 +46,7 @@ ao.send({
 ```lua
 ao.send({
     Target = ProcessId,
-    Action = 'fetchProfilePosts',
+    Action = 'FetchProfileMemes',
     Page = 0
     Size = 100
 })
