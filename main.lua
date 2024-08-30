@@ -152,9 +152,11 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
-        v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-        v.Engagement = {};
-        table.insert(Results, v);
+        if v.IsActive then
+            v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
+            v.Engagement = {};
+            table.insert(Results, v); 
+        end
     end;
     ao.send({
         Target = msg.From,
@@ -166,7 +168,7 @@ Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'Fetch
     local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
-        if v.Creator == msg.Profile then
+        if v.Creator == msg.Profile and v.IsActive then
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
             v.Engagement = {};
             table.insert(Results, v);
