@@ -224,8 +224,9 @@ end)
 
 
 Handlers.add('GetMeme', Handlers.utils.hasMatchingTag('Action', 'GetMeme'), function(msg)
-    local meme = Memes[msg.PoolId];
-    meme.analytics = AnalyticsData(msg.PoolId, msg.Timestamp);
+    if Memes[msg.Meme] == nil then return end
+    local meme = Memes[msg.Meme];
+    meme.Analytics = AnalyticsData(meme.Pool, msg.Timestamp);
     meme.Engagement = {};
     ao.send({
         Target = msg.From,
