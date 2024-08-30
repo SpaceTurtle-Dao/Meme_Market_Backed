@@ -131,16 +131,6 @@ Handlers.add('Info', Handlers.utils.hasMatchingTag('Action', 'Info'), function(m
     Info(msg)
 end)
 
-function Init(tokenA, tokenB, bondingCurve, Creator)
-    TokenAProcess = tokenA;
-    TokenBProcess = tokenB;
-    Creator = Creator;
-    BondingCurve = bondingCurve;
-    Balances[TokenAProcess] = {};
-    Balances[TokenBProcess] = {};
-    ao.spawn(Module, {})
-end
-
 --[[function InitalLiquidity(from, amountA, amountB)
     if not Shares[from] then Shares[from] = 0 end;
     _Share = 0;
@@ -379,9 +369,9 @@ function CreditNotice(msg)
         end;
         return
     end
-    
+
+    assert(IsActive, "Pool must be active")
     if (msg['X-Swap'] and msg['X-Slippage']) then
-        assert(IsActive, "Pool must be active")
         if msg.From == TokenAProcess then
             TokenA = TokenA + msg.Quantity;
             SwapA(msg.Sender, msg.Quantity, msg['X-Slippage'], msg.Timestamp);
@@ -389,6 +379,8 @@ function CreditNotice(msg)
             TokenB = TokenB + msg.Quantity;
             SwapB(msg.Sender, msg.Quantity, msg['X-Slippage'], msg.Timestamp);
         end
+    else
+        AddBalance(msg.Sender, msg.From, msg.Quantity); 
     end
 end
 
