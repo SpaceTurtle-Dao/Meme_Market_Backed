@@ -2,7 +2,7 @@ local bint = require('.bint')(256)
 local ao = require('ao')
 local json = require('json');
 
-WrappedArweave = ""; -- Process Id for wAr tokens
+WrappedArweave = "alfdQEEouvIvFDvhWRqImYesC_YVZ5FvFzc442I-QMI"; -- change to before launch Process Id for wAr tokens
 Module = "Pq2Zftrqut0hdisH_MC2pDOT6S4eQFoxGsFUzR6r350";
 MINUTE = 60000
 HOUR = MINUTE * 60;
@@ -45,8 +45,16 @@ Handlers.add('Meme', Handlers.utils.hasMatchingTag('Action', 'Meme'), function(m
     local balance = Balances[WrappedArweave][msg.From];
     if balance <= 0 then return end;
     local request = json.decode(msg.Data);
+    local currentId = MIP_ID;
+    MIP_ID = MIP_ID + 1;
+    local post = {
+        Id = currentId,
+        Kind = request.Kind,
+        Tags = request.Tags,
+        Content = request.Content
+    };
     local meme = {
-        Post = SIP01(msg.From, msg.Timestamp, request.Tags, request.Content,request.Kind),
+        Post = post,
         AmountA = msg.AmountA,
         AmountB = msg.AmountB,
         Module = Module,
@@ -57,7 +65,7 @@ Handlers.add('Meme', Handlers.utils.hasMatchingTag('Action', 'Meme'), function(m
     };
     table.insert(MemeRequest, meme)
     ao.spawn(Module, {})
-    Utils.result(msg.From, 200, "Created "..msg.Name.." Token", "Transaction");
+    Utils.result(msg.From, 200, "Created Meme", "Transaction");
 end)
 
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
@@ -69,9 +77,11 @@ Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), func
     request.BondingCurve = Default_Bonding;
     request.Holders = {};
     request.TokenB = WrappedArweave;
+    request.Analytics = {};
+    request.Engagement = {};
     Memes[msg.Process] = request;
-    if not Profiles[request.Creator] then Profiles[request.Creator] = {} end;
-    table.insert(Profiles[request.Creator], msg.Process)    ;
+    if not ProfileMemes[request.Creator] then ProfileMemes[request.Creator] = {} end;
+    table.insert(ProfileMemes[request.Creator], msg.Process)    ;
     ao.send({
         Target = msg.Process,
         Action = "Eval",
@@ -164,10 +174,15 @@ end)
 Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes'), function(msg)
     local _Memes = Fetch(Memes,Utils.toNumber(msg.Page),Utils.toNumber(msg.Size));
     local Results = {};
-    for k, v in pairs(_Memes) do
-        v.analytics = AnalyticsData(v.Pool, msg.Timestamp);
+    for i, v in ipairs(_Memes) do
+        v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
         v.Engagement = {};
         table.insert(Results, v);
+        ao.send({
+            Target = msg.From,
+            Data = json.encode(v)
+        });
+        break
     end;
     ao.send({
         Target = msg.From,
@@ -176,14 +191,13 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
 end)
 
 Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'FetchProfileMemes'), function(msg)
-    local _Memes = json.decode(msg.Memes);
+    local _Memes = Fetch(Memes,Utils.toNumber(msg.Page),Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
-        if Memes[i] ~= nil then
-            local meme = Memes[i]
-            meme.analytics = AnalyticsData(meme.Pool, msg.Timestamp);
-            meme.Engagement = {};
-            table.insert(Results, meme);
+        if v.Creator == msg.Profile then
+            v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
+            v.Engagement = {};
+            table.insert(Results, v);
         end
     end;
     ao.send({
@@ -432,10 +446,8 @@ end
 
 function Fetch(tbl,page,size)
     local tempArray = {}
-    local index = 1
     for k, v in pairs(tbl) do
-        tempArray[index] = { k, v }
-        index = index + 1
+        table.insert(tempArray,v)
     end
     local start = (page - 1) * size + 1
     local endPage = page * size
@@ -447,5 +459,5 @@ function Fetch(tbl,page,size)
             break
         end
     end
-    return result[1];
+    return result;
 end
