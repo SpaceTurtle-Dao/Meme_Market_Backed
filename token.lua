@@ -56,14 +56,14 @@ local utils = {
 Variant = "0.0.3"
 
 -- token should be idempotent and not change previous state updates
-Minter = "UOI4I9LmzHkobEIvs52vzY4SWk9FPi7JiYSHe4ZGmCI"
+Minter = "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc"
 Denomination = 12
 Balances = {}
 TotalSupply = 0
-Name = "Swappy"
-Ticker = "SWAP"
+Name = "Test"
+Ticker = "Test"
 Logo = "-RmetHQufxWySiJact95a9ON6pb-0s56dElmyJusGwQ"
-Description = "Test token for Swappy"
+Description = "Test token"
 
 --[[
      Add handlers for each incoming Action defined by the ao Standard Token Specification
