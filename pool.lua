@@ -366,6 +366,12 @@ function CreditNotice(msg)
             TokenB = TokenB + msg.Quantity;
             SwapB(msg.Sender, msg.Quantity, msg['X-Slippage']);
         end
+    elseif msg.From == Owner then
+        if msg.From == TokenAProcess then
+            TokenA = TokenA + msg.Quantity;
+        else
+            TokenB = TokenB + msg.Quantity;
+        end
     else
         ao.send({
             Target = msg.From,

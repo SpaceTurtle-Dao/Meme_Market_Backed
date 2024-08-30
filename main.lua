@@ -9,7 +9,7 @@ HOUR = MINUTE * 60;
 DAY = HOUR * 24;
 WEEK = DAY * 7;
 MONTH = DAY * 30;
-Default_Supply = "100000000000000000";
+Default_Supply = "1000000000000000000000";
 Default_Denomination = "12";
 Default_Bonding = "100000000000000";
 if not TokenModule then TokenModule = ""; end
@@ -69,7 +69,7 @@ end)
 Handlers.add('Request', Handlers.utils.hasMatchingTag('Action', 'Request'), function(msg)
     local meme = Memes[msg.From];
     ao.send({
-        Target = TokenB,
+        Target = WrappedArweave,
         Action = "Transfer",
         Recipient = meme.Pool,
         Quantity = meme.AmountB,
@@ -227,33 +227,6 @@ Handlers.add('PoolModule', Handlers.utils.hasMatchingTag('Action', 'PoolModule')
     Utils.result(msg.From, 200, msg.Data);
 end)
 
-Utils = {
-    add = function(a, b)
-        return tostring(bint(a) + bint(b))
-    end,
-    subtract = function(a, b)
-        return tostring(bint(a) - bint(b))
-    end,
-    mul = function(a, b)
-        return tostring(bint.__mul(a, b))
-    end,
-    div = function(a, b)
-        return tostring(bint.tdiv(tonumber(a), tonumber(b)))
-    end,
-    toBalanceValue = function(a)
-        return tostring(bint(a))
-    end,
-    toNumber = function(a)
-        return tonumber(a)
-    end,
-    result = function(target, code, description, label)
-        ao.send({
-            Target = target,
-            Data = json.encode({ code = code, label = label, description = description })
-        });
-    end
-}
-
 function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp)
     local currentId = MIP_ID;
     MIP_ID = MIP_ID + 1;
@@ -285,7 +258,7 @@ function CreditNotice(msg)
         local Content = msg['X-Content'];
         local AmountA = msg['X-Amount'];
         local AmountB = msg.Quantity;
-        Meme(msg.From, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp);
+        Meme(msg.Sender, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp);
     end
 end
 
@@ -462,3 +435,30 @@ function Fetch(tbl, page, size)
     end
     return result;
 end
+
+Utils = {
+    add = function(a, b)
+        return tostring(bint(a) + bint(b))
+    end,
+    subtract = function(a, b)
+        return tostring(bint(a) - bint(b))
+    end,
+    mul = function(a, b)
+        return tostring(bint.__mul(a, b))
+    end,
+    div = function(a, b)
+        return tostring(bint.tdiv(tonumber(a), tonumber(b)))
+    end,
+    toBalanceValue = function(a)
+        return tostring(bint(a))
+    end,
+    toNumber = function(a)
+        return tonumber(a)
+    end,
+    result = function(target, code, description, label)
+        ao.send({
+            Target = target,
+            Data = json.encode({ code = code, label = label, description = description })
+        });
+    end
+}
