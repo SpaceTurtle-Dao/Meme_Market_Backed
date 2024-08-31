@@ -32,19 +32,6 @@ Profiles = {}
 Memes = {}
 MIP_ID = 0]]--
 
-Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
-    if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
-    if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
-    local profile = {
-        Name = msg.Name,
-        Image = msg.Image,
-        CreatedAt = msg.Timestamp,
-        Creator = msg.From,
-    };
-    Profiles[msg.From] = profile;
-    Utils.result(msg.From, 200, "Created Profile");
-end)
-
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
     assert(msg.From == ao.id, "Not Authorized");
     local request = table.remove(MemeRequest, 1);
@@ -90,6 +77,19 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     Memes[msg.From] = meme;
     TotalSupply[msg.TokenA] = 0;
     Liquidity[msg.From] = 0;
+end)
+
+Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
+    if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
+    if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
+    local profile = {
+        Name = msg.Name,
+        Image = msg.Image,
+        CreatedAt = msg.Timestamp,
+        Creator = msg.From,
+    };
+    Profiles[msg.From] = profile;
+    Utils.result(msg.From, 200, "Created Profile");
 end)
 
 Handlers.add('Swap', Handlers.utils.hasMatchingTag('Action', 'Swap'), function(msg)
