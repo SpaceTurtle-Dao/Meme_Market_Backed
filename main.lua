@@ -169,6 +169,20 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     });
 end)
 
+Handlers.add('FetchMemesByIds', Handlers.utils.hasMatchingTag('Action', 'FetchMemesByIds'), function(msg)
+    local Results = {};
+    local memes = json.decode(msg.Memes)
+    for i, v in ipairs(memes) do
+        if Memes[v] then
+            table.insert(Results, v); 
+        end
+    end;
+    ao.send({
+        Target = msg.From,
+        Data = json.encode(Results)
+    });
+end)
+
 Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'FetchProfileMemes'), function(msg)
     local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
