@@ -365,10 +365,10 @@ function DebitNotice(msg)
             TokenB = TokenB + msg['X-Swap'];
             TokenA = TokenA - msg.Quantity;
             swap = {
-                isBuy = true,
-                tokenA = msg.Quantity,
-                tokenB = msg['X-Swap'],
-                timestamp = msg.Timestamp
+                IsBuy = true,
+                TokenA = msg.Quantity,
+                TokenB = msg['X-Swap'],
+                Timestamp = msg.Timestamp
             };
         else
             TokenA = TokenA + msg['X-Swap'];

@@ -67,7 +67,7 @@
     },
     {
       "name": "Recipient",
-      "value": "Pool process"
+      "value": "main process"
     },
     {
       "name": "'X-Kind'",
