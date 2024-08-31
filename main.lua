@@ -44,7 +44,9 @@ Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), func
     request.Holders = {};
     request.TokenB = WrappedArweave;
     request.Analytics = {};
-    request.Engagement = {};
+    request.Replies = 0;
+    request.Pumps = 0;
+    request.Dumps = 0;
     Memes[msg.Process] = request;
     if not ProfileMemes[request.Creator] then ProfileMemes[request.Creator] = {} end;
     table.insert(ProfileMemes[request.Creator], msg.Process);
@@ -76,12 +78,13 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     meme.IsActive = true;
     meme.TokenA = msg.TokenA;
     meme.Holders = {}
-    Memes[msg.From] = meme;
     TotalSupply[msg.TokenA] = 0;
     Liquidity[msg.From] = 0;
     if meme.Post.Parent then
-        Reply(meme.Pool,meme.Post.Parent) 
+        Reply(meme.Pool,meme.Post.Parent);
+        meme.Replies = meme.Replies + 1
     end
+    Memes[msg.From] = meme;
 end)
 
 Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
@@ -98,13 +101,21 @@ Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), func
 end)
 
 Handlers.add('Swap', Handlers.utils.hasMatchingTag('Action', 'Swap'), function(msg)
+    if not Memes[msg.From] then return end;
     local swap = json.decode(msg.Swap)
+    local meme = Memes[msg.From];
     if not Swaps[msg.From] then Swaps[msg.From] = {}; end;
     if not Liquidity[msg.From] then Liquidity[msg.From] = ""; end;
     table.insert(Swaps[msg.From], swap);
     Liquidity[msg.From] = msg.Liquidity;
     local _pool = Memes[msg.From];
     if not _pool.TokenA then _pool.TokenA = msg.TokenA; end;
+    if swap.IsBuy then
+        meme.Pumps = meme.Pumps + 1;
+    else
+        meme.Dumps = meme.Dumps + 1;
+    end
+    Memes[msg.From] = meme;
     ao.send({
         Target = _pool.TokenA,
         Action = 'Total-Supply',
@@ -230,7 +241,7 @@ end)
 Handlers.add('Bonded', Handlers.utils.hasMatchingTag('Action', 'Bonded'), function(msg)
     if not Memes[msg.From] then return; end
     local meme = Memes[msg.From];
-    meme.isPump = false;
+    meme.IsPump = false;
     Memes[msg.From] = meme;
 end)
 
@@ -273,7 +284,7 @@ function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp, Parent)
         AmountA = AmountA,
         AmountB = AmountB,
         Module = Module,
-        isPump = true,
+        IsPump = true,
         IsActive = false,
         createdAt = Timestamp,
         Creator = From,
@@ -296,67 +307,67 @@ function AnalyticsData(pool, timestamp)
     local volume = "0";
     local _buys = "0";
     local hourVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
 
     local dailyVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
 
     local weeklyVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
 
     local montlyVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
     if next(Swaps) ~= nil then
         local _swaps = Swaps[pool];
         if not _swaps then else
             for _, v in ipairs(_swaps) do
-                if v.isBuy then
+                if v.IsBuy then
                     _buys = _buys + 1;
                 end
             end
-            price = Utils.toNumber(_swaps[1].tokenB) / Utils.toNumber(_swaps[1].tokenA);
+            price = Utils.toNumber(_swaps[1].TokenB) / Utils.toNumber(_swaps[1].TokenA);
             volume = Volume(pool);
             hourVolume = {
-                now = HourVolume(pool, timestamp),
-                past = HourVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - HOUR)),
+                Now = HourVolume(pool, timestamp),
+                Past = HourVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - HOUR)),
             };
 
             dailyVolume = {
-                now = DailyVolume(pool, timestamp),
-                past = DailyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - DAY)),
+                Now = DailyVolume(pool, timestamp),
+                Past = DailyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - DAY)),
             };
 
             weeklyVolume = {
-                now = WeeklyVolume(pool, timestamp),
-                past = WeeklyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - WEEK)),
+                Now = WeeklyVolume(pool, timestamp),
+                Past = WeeklyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - WEEK)),
             };
 
             montlyVolume = {
-                now = MonthlyVolume(pool, timestamp),
-                past = MonthlyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - MONTH)),
+                Now = MonthlyVolume(pool, timestamp),
+                Past = MonthlyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - MONTH)),
             };
         end
     end
 
     local marketCap = math.floor(supply * price);
     local data = {
-        liquidty = tostring(math.floor(Liquidity[pool])),
-        volume = tostring(math.floor(Utils.toNumber(volume))),
-        hourVolume = hourVolume,
-        dayVolume = dailyVolume,
-        weekVolume = weeklyVolume,
-        montlyVolume = montlyVolume,
-        marketCap = marketCap,
-        price = tostring(price),
-        buys = _buys
+        Liquidty = tostring(math.floor(Liquidity[pool])),
+        Volume = tostring(math.floor(Utils.toNumber(volume))),
+        HourVolume = hourVolume,
+        DayVolume = dailyVolume,
+        WeekVolume = weeklyVolume,
+        MontlyVolume = montlyVolume,
+        MarketCap = marketCap,
+        Price = tostring(price),
+        Buys = _buys
     };
 
     return data
@@ -366,7 +377,7 @@ function Volume(pool)
     local _volume = "0";
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        _volume = _volume + v.tokenB
+        _volume = _volume + v.TokenB
     end;
     return _volume;
 end
@@ -377,8 +388,8 @@ function HourVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
@@ -390,8 +401,8 @@ function DailyVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
@@ -403,8 +414,8 @@ function WeeklyVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
@@ -416,8 +427,8 @@ function MonthlyVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
