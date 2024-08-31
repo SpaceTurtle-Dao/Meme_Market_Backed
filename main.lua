@@ -18,9 +18,10 @@ if not PoolModule then PoolModule = ""; end
 if not MIP_ID then MIP_ID = 0 end;
 if not MemeRequest then MemeRequest = {} end;
 if not Memes then Memes = {} end;
+if not Replies then Replies = {} end;
+if not Pumps then Pumps = {} end;
 if not ProfileMemes then ProfileMemes = {} end;
 if not Profiles then Profiles = {} end;
-if not Engagements then Engagements = {} end;
 if not Balances then Balances = {} end;
 if not Liquidity then Liquidity = {} end;
 if not Swaps then Swaps = {}; end
@@ -30,6 +31,7 @@ if not TotalSupply then TotalSupply = {}; end
 ProfileMemes = {}
 Profiles = {}
 Memes = {}
+Replies = {}
 MIP_ID = 0]]--
 
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
@@ -77,6 +79,9 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     Memes[msg.From] = meme;
     TotalSupply[msg.TokenA] = 0;
     Liquidity[msg.From] = 0;
+    if meme.Post.Parent then
+        Reply(meme.Pool,meme.Post.Parent) 
+    end
 end)
 
 Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
@@ -215,10 +220,6 @@ Handlers.add('Bonded', Handlers.utils.hasMatchingTag('Action', 'Bonded'), functi
     Memes[msg.From] = meme;
 end)
 
-Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-Notice"), function(msg)
-    CreditNotice(msg)
-end);
-
 Handlers.add('TokenModule', Handlers.utils.hasMatchingTag('Action', 'TokenModule'), function(msg)
     TokenModule = msg.Data;
     Utils.result(msg.From, 200, msg.Data);
@@ -229,14 +230,29 @@ Handlers.add('PoolModule', Handlers.utils.hasMatchingTag('Action', 'PoolModule')
     Utils.result(msg.From, 200, msg.Data);
 end)
 
-function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp)
-    local currentId = MIP_ID;
-    MIP_ID = MIP_ID + 1;
+Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-Notice"), function(msg)
+    CreditNotice(msg)
+end);
+
+function CreditNotice(msg)
+    if (msg.From == WrappedArweave) then
+        local parent = nil;
+        if msg['X-Parent'] then parent = msg['X-Parent'] end;
+        local Kind = msg['X-Kind'];
+        local Tags = json.decode(msg['X-Tags']);
+        local Content = msg['X-Content'];
+        local AmountA = msg['X-Amount'];
+        local AmountB = msg.Quantity;
+        Meme(msg.Sender, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp, parent);
+    end
+end
+
+function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp, Parent)
     local post = {
-        Id = currentId,
         Kind = Kind,
         Tags = Tags,
-        Content = Content
+        Content = Content,
+        Parent = Parent
     };
     local meme = {
         Post = post,
@@ -253,14 +269,10 @@ function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp)
     Utils.result(From, 200, "Created Meme", "Transaction");
 end
 
-function CreditNotice(msg)
-    if (msg.From == WrappedArweave) then
-        local Kind = msg['X-Kind'];
-        local Tags = json.decode(msg['X-Tags']);
-        local Content = msg['X-Content'];
-        local AmountA = msg['X-Amount'];
-        local AmountB = msg.Quantity;
-        Meme(msg.Sender, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp);
+function Reply(pool,parent)
+    if parent then
+        if not Replies[parent] then Replies[parent] = {} end;
+        table.insert(Replies[parent], pool) 
     end
 end
 

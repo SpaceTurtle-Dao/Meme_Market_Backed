@@ -8,7 +8,7 @@ const tokenModule = readFileSync("./token.lua").toString();
 const arweave = Arweave.init({});
 
 const wallet = await arweave.wallets.generate();
-const processId = "AagnqYQkln2T9_s1YE5duAIpvwnF9WfGqSv-ru5b8Mk";
+const processId = "H79To8Xv9amLeAstLfwOORpMPIk2Td2EsmP_ePcGNbs";
 
 const uploadModule = async (handler,module) => {
     try {
