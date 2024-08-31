@@ -80,13 +80,13 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     meme.Holders = {}
     TotalSupply[msg.TokenA] = 0;
     Liquidity[msg.From] = 0;
-    if meme.Post.Parent then
+    if meme.Post.Parent and Memes[meme.Post.Parent] then
         Reply(meme.Pool,meme.Post.Parent);
-        if Memes[meme.Post.Parent] then
-            local parent = Memes[meme.Post.Parent]
-            parent.Replies = parent.Replies + 1
-            Memes[meme.Post.Parent] = parent;
-        end
+        local parent = Memes[meme.Post.Parent]
+        parent.Replies = parent.Replies + 1
+        Memes[meme.Post.Parent] = parent;
+    else
+        meme.Post.Parent = nil
     end
     Memes[msg.From] = meme;
 end)
@@ -112,8 +112,6 @@ Handlers.add('Swap', Handlers.utils.hasMatchingTag('Action', 'Swap'), function(m
     if not Liquidity[msg.From] then Liquidity[msg.From] = ""; end;
     table.insert(Swaps[msg.From], swap);
     Liquidity[msg.From] = msg.Liquidity;
-    local _pool = Memes[msg.From];
-    if not _pool.TokenA then _pool.TokenA = msg.TokenA; end;
     if swap.IsBuy then
         meme.Pumps = meme.Pumps + 1;
     else
@@ -121,11 +119,11 @@ Handlers.add('Swap', Handlers.utils.hasMatchingTag('Action', 'Swap'), function(m
     end
     Memes[msg.From] = meme;
     ao.send({
-        Target = _pool.TokenA,
+        Target = meme.TokenA,
         Action = 'Total-Supply',
     })
     ao.send({
-        Target = _pool.TokenA,
+        Target = meme.TokenA,
         Action = 'Holders',
     })
 end)

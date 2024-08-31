@@ -71,7 +71,7 @@
     },
     {
       "name": "'X-Kind'",
-      "value": "1"
+      "value": "0"
     },
     {
       "name": "X-Tags",
@@ -79,7 +79,7 @@
     },
     {
       "name": "X-Content",
-      "value": "Whats up"
+      "value": "{\n\"text\":\"string\",\n\"media\":\"string\"\n}"
     },
     {
       "name": "X-Amount",
