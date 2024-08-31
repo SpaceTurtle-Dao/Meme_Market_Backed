@@ -82,7 +82,11 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     Liquidity[msg.From] = 0;
     if meme.Post.Parent then
         Reply(meme.Pool,meme.Post.Parent);
-        meme.Replies = meme.Replies + 1
+        if Memes[meme.Post.Parent] then
+            local parent = Memes[meme.Post.Parent]
+            parent.Replies = parent.Replies + 1
+            Memes[meme.Post.Parent] = parent;
+        end
     end
     Memes[msg.From] = meme;
 end)
@@ -177,6 +181,24 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     ao.send({
         Target = msg.From,
         Data = json.encode(_Memes)
+    });
+end)
+
+Handlers.add('FetchReplies', Handlers.utils.hasMatchingTag('Action', 'FetchReplies'), function(msg)
+    if not Replies[msg.Parent] then
+        ao.send({
+            Target = msg.From,
+            Data = json.encode({})
+        });
+    end
+    local _Replies = Fetch(Replies[msg.Parent], Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
+    local Results = {};
+    for i, v in ipairs(_Replies) do
+        table.insert(Results, v);
+    end;
+    ao.send({
+        Target = msg.From,
+        Data = json.encode(Results)
     });
 end)
 
@@ -295,10 +317,8 @@ function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp, Parent)
 end
 
 function Reply(pool,parent)
-    if parent then
-        if not Replies[parent] then Replies[parent] = {} end;
-        table.insert(Replies[parent], pool) 
-    end
+    if not Replies[parent] then Replies[parent] = {} end;
+    table.insert(Replies[parent], pool) 
 end
 
 function AnalyticsData(pool, timestamp)
