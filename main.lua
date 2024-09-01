@@ -172,7 +172,6 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     for i, v in ipairs(_Memes) do
         if v.IsActive then
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-            v.Engagement = {};
             table.insert(Results, v); 
         end
     end;
@@ -220,7 +219,6 @@ Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'Fetch
     for i, v in ipairs(_Memes) do
         if v.Creator == msg.Profile and v.IsActive then
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-            v.Engagement = {};
             table.insert(Results, v);
         end
     end;
@@ -351,7 +349,7 @@ function AnalyticsData(pool, timestamp)
                     _buys = _buys + 1;
                 end
             end
-            price = Utils.toNumber(_swaps[1].TokenB) / Utils.toNumber(_swaps[1].TokenA);
+            price = Utils.toNumber(_swaps[#_swaps].TokenB) / Utils.toNumber(_swaps[#_swaps].TokenA);
             volume = Volume(pool);
             hourVolume = {
                 Now = HourVolume(pool, timestamp),
@@ -384,7 +382,7 @@ function AnalyticsData(pool, timestamp)
         WeekVolume = weeklyVolume,
         MontlyVolume = montlyVolume,
         MarketCap = marketCap,
-        Price = tostring(price),
+        Price = string.format("%.12f", price),
         Buys = _buys
     };
 
