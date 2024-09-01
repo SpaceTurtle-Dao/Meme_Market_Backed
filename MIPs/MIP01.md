@@ -1,44 +1,6 @@
 
 **Models**
 
-**MemeRequest Object**
-```lua
-{
-  "process": "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc",
-  "data": "",
-  "tags": [
-    {
-      "name": "Action",
-      "value": "Transfer"
-    },
-    {
-      "name": "Quantity",
-      "value": "1000000000000"
-    },
-    {
-      "name": "Recipient",
-      "value": "Pool process"
-    },
-    {
-      "name": "'X-Kind'",
-      "value": "1"
-    },
-    {
-      "name": "X-Tags",
-      "value": "[]"
-    },
-    {
-      "name": "X-Content",
-      "value": "Whats up"
-    },
-    {
-      "name": "X-Amount",
-      "value": "1000000000000000000"
-    }
-  ]
-}
-```
-
 **Meme Object**
 ```lua
  {
@@ -90,12 +52,41 @@
 
 **Meme**
 ```lua
---creates a token, a pool and makes the creator the only liquidty provider using amount specified by the creator
-ao.send({
-    Target = ProcessId,
-    Action = 'Meme',
-    Data = MemeRequest
-})
+--creates a token, a pool and makes the creator the first buyer using amount specified by the creator
+{
+  "process": "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc", --use wAr token in prod
+  "data": "",
+  "tags": [
+    {
+      "name": "Action",
+      "value": "Transfer"
+    },
+    {
+      "name": "Quantity",
+      "value": "1000000000000"
+    },
+    {
+      "name": "Recipient",
+      "value": "main process"
+    },
+    {
+      "name": "'X-Kind'",
+      "value": "0"
+    },
+    {
+      "name": "X-Tags",
+      "value": "[]"
+    },
+    {
+      "name": "X-Content",
+      "value": "{\n\"text\":\"string\",\n\"media\":\"string\"\n}"
+    },
+    {
+      "name": "X-Amount",
+      "value": "1000000000000000000"
+    }
+  ]
+}
 ```
 **Reply**
 ```lua
@@ -107,24 +98,35 @@ ao.send({
 })
 ```
 
-**Pump**
+**Pump/Dump**
 ```lua
-ao.send({
-    Target = ProcessId,
-    Action = 'Pump',
-    MemeId = 0,
-    Amount = 100
-})
-```
-
-**Like**
-```lua
-ao.send({
-    Target = ProcessId,
-    Action = 'Dump',
-    MemeId = 0,
-    Amount = 100
-})
+--buys or sells depending on what token you are pointing to
+{
+  "process": "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc", --either wAr token or meme atomic asset aka post
+  "data": "",
+  "tags": [
+    {
+      "name": "Action",
+      "value": "Transfer"
+    },
+    {
+      "name": "Recipient",
+      "value": "CprNpySUQRkLGdC97KZUG2MyjqbZm_z1mRCm1ahEhc8"
+    },
+    {
+      "name": "Quantity",
+      "value": "10000000000"
+    },
+    {
+      "name": "X-Swap",
+      "value": ""
+    },
+    {
+      "name": "X-Slippage",
+      "value": "0"
+    }
+  ]
+}
 ```
 
 **Get Meme**
@@ -139,12 +141,47 @@ ao.send({
 
 **Fetch Meme**
 ```lua
-ao.send({
-    Target = ProcessId,
-    Action = 'FetchMemes',
-    Page = 0
-    Size = 100
-})
+{
+  "process": "AagnqYQkln2T9_s1YE5duAIpvwnF9WfGqSv-ru5b8Mk",
+  "data": "",
+  "tags": [
+    {
+      "name": "Action",
+      "value": "FetchMemes"
+    },
+    {
+      "name": "Page",
+      "value": "1"
+    },
+    {
+      "name": "Size",
+      "value": "100"
+    }
+  ]
+}
+--returns an Array of Meme object
+```
+
+**Fetch Profile Meme**
+```lua
+{
+  "process": "AagnqYQkln2T9_s1YE5duAIpvwnF9WfGqSv-ru5b8Mk",
+  "data": "",
+  "tags": [
+    {
+      "name": "Action",
+      "value": "FetchProfileMemes"
+    },
+    {
+      "name": "Page",
+      "value": "1"
+    },
+    {
+      "name": "Size",
+      "value": "100"
+    }
+  ]
+}
 --returns an Array of Meme object
 ```
 

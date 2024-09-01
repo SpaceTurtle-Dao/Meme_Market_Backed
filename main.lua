@@ -18,9 +18,10 @@ if not PoolModule then PoolModule = ""; end
 if not MIP_ID then MIP_ID = 0 end;
 if not MemeRequest then MemeRequest = {} end;
 if not Memes then Memes = {} end;
+if not Replies then Replies = {} end;
+if not Pumps then Pumps = {} end;
 if not ProfileMemes then ProfileMemes = {} end;
 if not Profiles then Profiles = {} end;
-if not Engagements then Engagements = {} end;
 if not Balances then Balances = {} end;
 if not Liquidity then Liquidity = {} end;
 if not Swaps then Swaps = {}; end
@@ -30,20 +31,8 @@ if not TotalSupply then TotalSupply = {}; end
 ProfileMemes = {}
 Profiles = {}
 Memes = {}
+Replies = {}
 MIP_ID = 0]]--
-
-Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
-    if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
-    if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
-    local profile = {
-        Name = msg.Name,
-        Image = msg.Image,
-        CreatedAt = msg.Timestamp,
-        Creator = msg.From,
-    };
-    Profiles[msg.From] = profile;
-    Utils.result(msg.From, 200, "Created Profile");
-end)
 
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
     assert(msg.From == ao.id, "Not Authorized");
@@ -55,7 +44,9 @@ Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), func
     request.Holders = {};
     request.TokenB = WrappedArweave;
     request.Analytics = {};
-    request.Engagement = {};
+    request.Replies = 0;
+    request.Pumps = 0;
+    request.Dumps = 0;
     Memes[msg.Process] = request;
     if not ProfileMemes[request.Creator] then ProfileMemes[request.Creator] = {} end;
     table.insert(ProfileMemes[request.Creator], msg.Process);
@@ -87,25 +78,52 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     meme.IsActive = true;
     meme.TokenA = msg.TokenA;
     meme.Holders = {}
-    Memes[msg.From] = meme;
     TotalSupply[msg.TokenA] = 0;
     Liquidity[msg.From] = 0;
+    if meme.Post.Parent and Memes[meme.Post.Parent] then
+        Reply(meme.Pool,meme.Post.Parent);
+        local parent = Memes[meme.Post.Parent]
+        parent.Replies = parent.Replies + 1
+        Memes[meme.Post.Parent] = parent;
+    else
+        meme.Post.Parent = nil
+    end
+    Memes[msg.From] = meme;
+end)
+
+Handlers.add('Profile', Handlers.utils.hasMatchingTag('Action', 'Profile'), function(msg)
+    if not Balances[WrappedArweave] then Balances[WrappedArweave] = {} end;
+    if not Balances[WrappedArweave][msg.From] then Balances[WrappedArweave][msg.From] = 0 end;
+    local profile = {
+        Name = msg.Name,
+        Image = msg.Image,
+        CreatedAt = msg.Timestamp,
+        Creator = msg.From,
+    };
+    Profiles[msg.From] = profile;
+    Utils.result(msg.From, 200, "Created Profile");
 end)
 
 Handlers.add('Swap', Handlers.utils.hasMatchingTag('Action', 'Swap'), function(msg)
+    if not Memes[msg.From] then return end;
     local swap = json.decode(msg.Swap)
+    local meme = Memes[msg.From];
     if not Swaps[msg.From] then Swaps[msg.From] = {}; end;
     if not Liquidity[msg.From] then Liquidity[msg.From] = ""; end;
     table.insert(Swaps[msg.From], swap);
     Liquidity[msg.From] = msg.Liquidity;
-    local _pool = Memes[msg.From];
-    if not _pool.TokenA then _pool.TokenA = msg.TokenA; end;
+    if swap.IsBuy then
+        meme.Pumps = meme.Pumps + 1;
+    else
+        meme.Dumps = meme.Dumps + 1;
+    end
+    Memes[msg.From] = meme;
     ao.send({
-        Target = _pool.TokenA,
+        Target = meme.TokenA,
         Action = 'Total-Supply',
     })
     ao.send({
-        Target = _pool.TokenA,
+        Target = meme.TokenA,
         Action = 'Holders',
     })
 end)
@@ -152,9 +170,10 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
-        v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-        v.Engagement = {};
-        table.insert(Results, v);
+        if v.IsActive then
+            v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
+            table.insert(Results, v); 
+        end
     end;
     ao.send({
         Target = msg.From,
@@ -162,13 +181,44 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     });
 end)
 
+Handlers.add('FetchReplies', Handlers.utils.hasMatchingTag('Action', 'FetchReplies'), function(msg)
+    if not Replies[msg.Parent] then
+        ao.send({
+            Target = msg.From,
+            Data = json.encode({})
+        });
+    end
+    local _Replies = Fetch(Replies[msg.Parent], Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
+    local Results = {};
+    for i, v in ipairs(_Replies) do
+        table.insert(Results, v);
+    end;
+    ao.send({
+        Target = msg.From,
+        Data = json.encode(Results)
+    });
+end)
+
+Handlers.add('FetchMemesByIds', Handlers.utils.hasMatchingTag('Action', 'FetchMemesByIds'), function(msg)
+    local Results = {};
+    local memes = json.decode(msg.Memes)
+    for i, v in ipairs(memes) do
+        if Memes[v] then
+            table.insert(Results, v); 
+        end
+    end;
+    ao.send({
+        Target = msg.From,
+        Data = json.encode(Results)
+    });
+end)
+
 Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'FetchProfileMemes'), function(msg)
     local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Memes) do
-        if v.Creator == msg.Profile then
+        if v.Creator == msg.Profile and v.IsActive then
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-            v.Engagement = {};
             table.insert(Results, v);
         end
     end;
@@ -186,7 +236,7 @@ Handlers.add('FetchProfiles', Handlers.utils.hasMatchingTag('Action', 'FetchProf
     });
 end)
 
-Handlers.add('getProfile', Handlers.utils.hasMatchingTag('Action', 'getProfile'), function(msg)
+Handlers.add('GetProfile', Handlers.utils.hasMatchingTag('Action', 'GetProfile'), function(msg)
     if Profiles[msg.Profile] == nil then return end
     ao.send({
         Target = msg.From,
@@ -209,13 +259,9 @@ end)
 Handlers.add('Bonded', Handlers.utils.hasMatchingTag('Action', 'Bonded'), function(msg)
     if not Memes[msg.From] then return; end
     local meme = Memes[msg.From];
-    meme.isPump = false;
+    meme.IsPump = false;
     Memes[msg.From] = meme;
 end)
-
-Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-Notice"), function(msg)
-    CreditNotice(msg)
-end);
 
 Handlers.add('TokenModule', Handlers.utils.hasMatchingTag('Action', 'TokenModule'), function(msg)
     TokenModule = msg.Data;
@@ -227,21 +273,36 @@ Handlers.add('PoolModule', Handlers.utils.hasMatchingTag('Action', 'PoolModule')
     Utils.result(msg.From, 200, msg.Data);
 end)
 
-function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp)
-    local currentId = MIP_ID;
-    MIP_ID = MIP_ID + 1;
+Handlers.add("Credit-Notice", Handlers.utils.hasMatchingTag('Action', "Credit-Notice"), function(msg)
+    CreditNotice(msg)
+end);
+
+function CreditNotice(msg)
+    if (msg.From == WrappedArweave) then
+        local parent = nil;
+        if msg['X-Parent'] then parent = msg['X-Parent'] end;
+        local Kind = msg['X-Kind'];
+        local Tags = json.decode(msg['X-Tags']);
+        local Content = msg['X-Content'];
+        local AmountA = msg['X-Amount'];
+        local AmountB = msg.Quantity;
+        Meme(msg.Sender, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp, parent);
+    end
+end
+
+function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp, Parent)
     local post = {
-        Id = currentId,
         Kind = Kind,
         Tags = Tags,
-        Content = Content
+        Content = Content,
+        Parent = Parent
     };
     local meme = {
         Post = post,
         AmountA = AmountA,
         AmountB = AmountB,
         Module = Module,
-        isPump = true,
+        IsPump = true,
         IsActive = false,
         createdAt = Timestamp,
         Creator = From,
@@ -251,15 +312,9 @@ function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp)
     Utils.result(From, 200, "Created Meme", "Transaction");
 end
 
-function CreditNotice(msg)
-    if (msg.From == WrappedArweave) then
-        local Kind = msg['X-Kind'];
-        local Tags = json.decode(msg['X-Tags']);
-        local Content = msg['X-Content'];
-        local AmountA = msg['X-Amount'];
-        local AmountB = msg.Quantity;
-        Meme(msg.Sender, Kind, Tags, Content, AmountA, AmountB, msg.Timestamp);
-    end
+function Reply(pool,parent)
+    if not Replies[parent] then Replies[parent] = {} end;
+    table.insert(Replies[parent], pool) 
 end
 
 function AnalyticsData(pool, timestamp)
@@ -268,67 +323,67 @@ function AnalyticsData(pool, timestamp)
     local volume = "0";
     local _buys = "0";
     local hourVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
 
     local dailyVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
 
     local weeklyVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
 
     local montlyVolume = {
-        now = "0",
-        past = "0",
+        Now = "0",
+        Past = "0",
     };
     if next(Swaps) ~= nil then
         local _swaps = Swaps[pool];
         if not _swaps then else
             for _, v in ipairs(_swaps) do
-                if v.isBuy then
+                if v.IsBuy then
                     _buys = _buys + 1;
                 end
             end
-            price = Utils.toNumber(_swaps[1].tokenB) / Utils.toNumber(_swaps[1].tokenA);
+            price = Utils.toNumber(_swaps[#_swaps].TokenB) / Utils.toNumber(_swaps[#_swaps].TokenA);
             volume = Volume(pool);
             hourVolume = {
-                now = HourVolume(pool, timestamp),
-                past = HourVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - HOUR)),
+                Now = HourVolume(pool, timestamp),
+                Past = HourVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - HOUR)),
             };
 
             dailyVolume = {
-                now = DailyVolume(pool, timestamp),
-                past = DailyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - DAY)),
+                Now = DailyVolume(pool, timestamp),
+                Past = DailyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - DAY)),
             };
 
             weeklyVolume = {
-                now = WeeklyVolume(pool, timestamp),
-                past = WeeklyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - WEEK)),
+                Now = WeeklyVolume(pool, timestamp),
+                Past = WeeklyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - WEEK)),
             };
 
             montlyVolume = {
-                now = MonthlyVolume(pool, timestamp),
-                past = MonthlyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - MONTH)),
+                Now = MonthlyVolume(pool, timestamp),
+                Past = MonthlyVolume(pool, Utils.toBalanceValue(Utils.toNumber(timestamp) - MONTH)),
             };
         end
     end
 
     local marketCap = math.floor(supply * price);
     local data = {
-        liquidty = tostring(math.floor(Liquidity[pool])),
-        volume = tostring(math.floor(Utils.toNumber(volume))),
-        hourVolume = hourVolume,
-        dayVolume = dailyVolume,
-        weekVolume = weeklyVolume,
-        montlyVolume = montlyVolume,
-        marketCap = marketCap,
-        price = tostring(price),
-        buys = _buys
+        Liquidty = tostring(math.floor(Liquidity[pool])),
+        Volume = tostring(math.floor(Utils.toNumber(volume))),
+        HourVolume = hourVolume,
+        DayVolume = dailyVolume,
+        WeekVolume = weeklyVolume,
+        MontlyVolume = montlyVolume,
+        MarketCap = marketCap,
+        Price = string.format("%.12f", price),
+        Buys = _buys
     };
 
     return data
@@ -338,7 +393,7 @@ function Volume(pool)
     local _volume = "0";
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        _volume = _volume + v.tokenB
+        _volume = _volume + v.TokenB
     end;
     return _volume;
 end
@@ -349,8 +404,8 @@ function HourVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
@@ -362,8 +417,8 @@ function DailyVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
@@ -375,8 +430,8 @@ function WeeklyVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;
@@ -388,8 +443,8 @@ function MonthlyVolume(pool, timestamp)
     local stop = Utils.toNumber(timestamp);
     local _swaps = Swaps[pool];
     for k, v in pairs(_swaps) do
-        if Utils.toNumber(v.timestamp) <= stop and Utils.toNumber(v.timestamp) >= start then
-            _volume = Utils.add(_volume, v.tokenB)
+        if Utils.toNumber(v.Timestamp) <= stop and Utils.toNumber(v.Timestamp) >= start then
+            _volume = Utils.add(_volume, v.TokenB)
         end
     end
     return _volume;

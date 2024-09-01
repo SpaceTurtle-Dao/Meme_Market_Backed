@@ -365,25 +365,25 @@ function DebitNotice(msg)
             TokenB = TokenB + msg['X-Swap'];
             TokenA = TokenA - msg.Quantity;
             swap = {
-                isBuy = true,
-                tokenA = msg.Quantity,
-                tokenB = msg['X-Swap'],
-                timestamp = msg.Timestamp
+                IsBuy = true,
+                TokenA = msg.Quantity,
+                TokenB = msg['X-Swap'],
+                Timestamp = msg.Timestamp
             };
-        else
+        elseif msg.From == TokenBProcess then
             TokenA = TokenA + msg['X-Swap'];
             TokenB = TokenB - msg.Quantity;
             swap = {
-                isBuy = false,
-                tokenA = msg['X-Swap'],
-                tokenB = msg.Quantity,
-                timestamp = msg.Timestamp
+                IsBuy = false,
+                TokenA = msg['X-Swap'],
+                TokenB = msg.Quantity,
+                Timestamp = msg.Timestamp
             };
         end
     else
         if msg.From == TokenAProcess then
             TokenA = TokenA - msg.Quantity;
-        else
+        elseif msg.From == TokenBProcess then
             TokenB = TokenB - msg.Quantity;
         end
     end
@@ -400,8 +400,7 @@ function DebitNotice(msg)
         Target = Owner,
         Action = "Swap",
         Swap = json.encode(swap),
-        Liquidity = tostring(liquidity),
-        TokenA = TokenAProcess
+        Liquidity = tostring(liquidity)
     });
 end
 
