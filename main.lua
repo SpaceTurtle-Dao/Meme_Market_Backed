@@ -9,9 +9,9 @@ HOUR = MINUTE * 60;
 DAY = HOUR * 24;
 WEEK = DAY * 7;
 MONTH = DAY * 30;
-Default_Supply = "1000000000000000000000";
+Default_Supply = "21000000000000000000";
 Default_Denomination = "12";
-Default_Bonding = "100000000000000";
+Default_Bonding = "1000000000000000000";
 if not TokenModule then TokenModule = ""; end
 if not PoolModule then PoolModule = ""; end
 
@@ -171,6 +171,8 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
     local Results = {};
     for i, v in ipairs(_Memes) do
         if v.IsActive then
+            if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
+            v.Profile = Profiles[v.Creator];
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
             table.insert(Results, v); 
         end
@@ -191,6 +193,8 @@ Handlers.add('FetchReplies', Handlers.utils.hasMatchingTag('Action', 'FetchRepli
     local _Replies = Fetch(Replies[msg.Parent], Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
     for i, v in ipairs(_Replies) do
+        if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
+        v.Profile = Profiles[v.Creator];
         table.insert(Results, v);
     end;
     ao.send({
@@ -204,6 +208,8 @@ Handlers.add('FetchMemesByIds', Handlers.utils.hasMatchingTag('Action', 'FetchMe
     local memes = json.decode(msg.Memes)
     for i, v in ipairs(memes) do
         if Memes[v] then
+            if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
+            v.Profile = Profiles[v.Creator];
             table.insert(Results, v); 
         end
     end;
@@ -218,6 +224,8 @@ Handlers.add('FetchProfileMemes', Handlers.utils.hasMatchingTag('Action', 'Fetch
     local Results = {};
     for i, v in ipairs(_Memes) do
         if v.Creator == msg.Profile and v.IsActive then
+            if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
+            v.Profile = Profiles[v.Creator];
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
             table.insert(Results, v);
         end
@@ -349,7 +357,7 @@ function AnalyticsData(pool, timestamp)
                     _buys = _buys + 1;
                 end
             end
-            price = Utils.toNumber(_swaps[#_swaps].TokenB) / Utils.toNumber(_swaps[#_swaps].TokenA);
+            price = Liquidity[pool] / supply;
             volume = Volume(pool);
             hourVolume = {
                 Now = HourVolume(pool, timestamp),
@@ -373,7 +381,7 @@ function AnalyticsData(pool, timestamp)
         end
     end
 
-    local marketCap = math.floor(supply * price);
+    local marketCap = supply * price;
     local data = {
         Liquidty = tostring(math.floor(Liquidity[pool])),
         Volume = tostring(math.floor(Utils.toNumber(volume))),
@@ -382,7 +390,7 @@ function AnalyticsData(pool, timestamp)
         WeekVolume = weeklyVolume,
         MontlyVolume = montlyVolume,
         MarketCap = marketCap,
-        Price = string.format("%.12f", price),
+        Price = price,
         Buys = _buys
     };
 
