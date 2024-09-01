@@ -238,7 +238,7 @@ Handlers.add('FetchProfiles', Handlers.utils.hasMatchingTag('Action', 'FetchProf
     });
 end)
 
-Handlers.add('getProfile', Handlers.utils.hasMatchingTag('Action', 'getProfile'), function(msg)
+Handlers.add('GetProfile', Handlers.utils.hasMatchingTag('Action', 'GetProfile'), function(msg)
     if Profiles[msg.Profile] == nil then return end
     ao.send({
         Target = msg.From,
