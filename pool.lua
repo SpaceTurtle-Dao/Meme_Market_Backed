@@ -557,7 +557,7 @@ function AdjustLiquidity()
     -- If the current ratio is greater than the target ratio, we need to adjust tokenA
     if currentRatio > targetRatio then
         -- Calculate the excess amount of tokenA and adjust it
-        local excessTokenA = _TokenA - Utils.mul(_TokenB * targetRatio)
+        local excessTokenA = _TokenA - Utils.mul(_TokenB, targetRatio)
         TokenA = string.format("%.0f", (_TokenA - excessTokenA));
         Reserve.TokenA = Reserve.TokenA + excessTokenA
         print(string.format("Adjusted tokenA by removing %f to maintain 1:1 ratio", excessTokenA))
@@ -569,29 +569,29 @@ function AdjustLiquidity()
         TokenB = string.format("%.0f", (_TokenB - excessTokenB));
         Reserve.TokenB = Reserve.TokenB + excessTokenB
         print(string.format("Adjusted tokenB by removing %f to maintain 1:1 ratio", excessTokenB))
-
-        -- Optionally, add back from reserves if needed to maintain the ratio
-        RebalanceFromReserve()
     end
+    -- Rebalance the pool using reserves if necessary
+    RebalanceFromReserve()
 end
 
 function RebalanceFromReserve()
     local targetRatio = 1  -- Target ratio of 1:1
-    
+    local _TokenA = Utils.toNumber(TokenA);
+    local _TokenB = Utils.toNumber(TokenB);
     -- Check if tokenA is less than the required amount to maintain the ratio
-    if TokenA < TokenB * targetRatio and Reserve.TokenA > 0 then
-        local neededTokenA = (TokenB * targetRatio) - TokenA
+    if _TokenA < _TokenB * targetRatio and Reserve.TokenA > 0 then
+        local neededTokenA = (_TokenB * targetRatio) - _TokenA
         local addedTokenA = math.min(neededTokenA, Reserve.TokenA)
-        TokenA = TokenA + addedTokenA
+        TokenA = string.format("%.0f", (_TokenA + addedTokenA)); 
         Reserve.RokenA = Reserve.TokenA - addedTokenA
         print(string.format("Added %f tokenA from reserve to maintain 1:1 ratio", addedTokenA))
     end
 
     -- Check if tokenB is less than the required amount to maintain the ratio
-    if TokenB < TokenA / targetRatio and Reserve.TokenB > 0 then
-        local neededTokenB = (TokenA / targetRatio) - TokenB
+    if _TokenB < _TokenA / targetRatio and Reserve.TokenB > 0 then
+        local neededTokenB = (_TokenA / targetRatio) - _TokenB
         local addedTokenB = math.min(neededTokenB, Reserve.TokenB)
-        TokenB = TokenB + addedTokenB
+        TokenB = string.format("%.0f", (_TokenB + addedTokenB)); 
         Reserve.TokenB = Reserve.TokenB - addedTokenB
         print(string.format("Added %f tokenB from reserve to maintain 1:1 ratio", addedTokenB))
     end
