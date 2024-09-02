@@ -96,6 +96,27 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
         Action = "Activate",
         TokenA = TokenAProcess,
     });
+    local swap = {
+        IsBuy = true,
+        TokenA = Meme.AmountA,
+        TokenB = Meme.AmountB,
+        Timestamp = msg.Timestamp
+    };
+    AdjustLiquidity()
+    local liquidity = GetLiquidity();
+    if liquidity >= Utils.toNumber(BondingCurve) then
+        IsPump = false;
+        ao.send({
+            Target = Owner,
+            Action = "Bonded"
+        });
+    end
+    ao.send({
+        Target = Owner,
+        Action = "Swap",
+        Swap = json.encode(swap),
+        Liquidity = tostring(liquidity)
+    });
 end)
 
 
@@ -369,6 +390,7 @@ function DebitNotice(msg)
             TokenB = TokenB + msg['X-Swap'];
             TokenA = TokenA - msg.Quantity;
             swap = {
+                Recipient = msg.Recipient,
                 IsBuy = true,
                 TokenA = msg.Quantity,
                 TokenB = msg['X-Swap'],
@@ -378,6 +400,7 @@ function DebitNotice(msg)
             TokenA = TokenA + msg['X-Swap'];
             TokenB = TokenB - msg.Quantity;
             swap = {
+                Recipient = msg.Recipient,
                 IsBuy = false,
                 TokenA = msg['X-Swap'],
                 TokenB = msg.Quantity,
