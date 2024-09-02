@@ -1,6 +1,7 @@
 local bint = require('.bint')(256)
 local ao = require('ao')
 local json = require('json');
+local utils = require(".utils")
 
 WrappedArweave = "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc"; -- change to before launch Process Id for wAr tokens
 Module = "Pq2Zftrqut0hdisH_MC2pDOT6S4eQFoxGsFUzR6r350";
@@ -34,7 +35,7 @@ if not TotalSupply then TotalSupply = {}; end
 ProfileMemes = {}
 Memes = {}
 Replies = {}
-MIP_ID = 0]]--
+MIP_ID = 0]] --
 
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
     assert(msg.From == ao.id, "Not Authorized");
@@ -50,6 +51,7 @@ Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), func
     request.Pumps = 0;
     request.Dumps = 0;
     Memes[msg.Process] = request;
+    Replies[msg.Process] = {};
     if not ProfileMemes[request.Creator] then ProfileMemes[request.Creator] = {} end;
     table.insert(ProfileMemes[request.Creator], msg.Process);
     ao.send({
@@ -84,7 +86,7 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     Liquidity[msg.From] = 0;
     Price[msg.From] = msg.Price;
     if meme.Post.Parent and Memes[meme.Post.Parent] then
-        Reply(meme.Pool,meme.Post.Parent);
+        Reply(meme.Pool, meme.Post.Parent);
         local parent = Memes[meme.Post.Parent]
         parent.Replies = parent.Replies + 1
         Memes[meme.Post.Parent] = parent;
@@ -179,7 +181,7 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
             if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
             v.Profile = Profiles[v.Creator];
             v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-            table.insert(Results, v); 
+            table.insert(Results, v);
         end
     end;
     ao.send({
@@ -189,19 +191,24 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
 end)
 
 Handlers.add('FetchReplies', Handlers.utils.hasMatchingTag('Action', 'FetchReplies'), function(msg)
-    local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
+    local replies = Replies[msg.Parent];
+    local _replies = Fetch(replies, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
+    local _Memes = {};
+    for i, v in ipairs(_replies) do
+        if Memes[v].IsActive then
+            table.insert(_Memes, Memes[v]);
+        end
+    end;
     local Results = {};
     for i, v in ipairs(_Memes) do
-        if v.IsActive and v.Parent == msg.Parent then
-            if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
-            v.Profile = Profiles[v.Creator];
-            v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
-            table.insert(Results, v); 
-        end
+        if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
+        v.Profile = Profiles[v.Creator];
+        v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
+        table.insert(Results, v);
     end;
     ao.send({
         Target = msg.From,
-        Data = json.encode(_Memes)
+        Data = json.encode(Results)
     });
 end)
 
@@ -212,7 +219,7 @@ Handlers.add('FetchMemesByIds', Handlers.utils.hasMatchingTag('Action', 'FetchMe
         if Memes[v] then
             if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
             v.Profile = Profiles[v.Creator];
-            table.insert(Results, v); 
+            table.insert(Results, v);
         end
     end;
     ao.send({
@@ -322,9 +329,11 @@ function Meme(From, Kind, Tags, Content, AmountA, AmountB, Timestamp, Parent)
     Utils.result(From, 200, "Created Meme", "Transaction");
 end
 
-function Reply(pool,parent)
+function Reply(pool, parent)
     if not Replies[parent] then Replies[parent] = {} end;
-    table.insert(Replies[parent], pool) 
+    local replies = Replies[parent];
+    table.insert(replies, pool);
+    Replies[parent] = replies;
 end
 
 function AnalyticsData(pool, timestamp)
@@ -383,7 +392,7 @@ function AnalyticsData(pool, timestamp)
         end
     end
 
-    local marketCap = Utils.mul(supply,price);
+    local marketCap = Utils.mul(supply, price);
     local data = {
         Liquidty = tostring(math.floor(Liquidity[pool])),
         Volume = tostring(math.floor(Utils.toNumber(volume))),
