@@ -24,12 +24,14 @@ if not ProfileMemes then ProfileMemes = {} end;
 if not Profiles then Profiles = {} end;
 if not Balances then Balances = {} end;
 if not Liquidity then Liquidity = {} end;
+if not Price then Price = {} end;
 if not Swaps then Swaps = {}; end
 if not TotalSupply then TotalSupply = {}; end
 
+--Profiles = {}
+
 --[[MemeRequest = {}
 ProfileMemes = {}
-Profiles = {}
 Memes = {}
 Replies = {}
 MIP_ID = 0]]--
@@ -80,6 +82,7 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
     meme.Holders = {}
     TotalSupply[msg.TokenA] = 0;
     Liquidity[msg.From] = 0;
+    Price[msg.From] = msg.Price;
     if meme.Post.Parent and Memes[meme.Post.Parent] then
         Reply(meme.Pool,meme.Post.Parent);
         local parent = Memes[meme.Post.Parent]
@@ -110,8 +113,10 @@ Handlers.add('Swap', Handlers.utils.hasMatchingTag('Action', 'Swap'), function(m
     local meme = Memes[msg.From];
     if not Swaps[msg.From] then Swaps[msg.From] = {}; end;
     if not Liquidity[msg.From] then Liquidity[msg.From] = ""; end;
+    if not Price[msg.From] then Price[msg.From] = ""; end;
     table.insert(Swaps[msg.From], swap);
     Liquidity[msg.From] = msg.Liquidity;
+    Price[msg.From] = msg.Price;
     if swap.IsBuy then
         meme.Pumps = meme.Pumps + 1;
     else
@@ -184,22 +189,19 @@ Handlers.add('FetchMemes', Handlers.utils.hasMatchingTag('Action', 'FetchMemes')
 end)
 
 Handlers.add('FetchReplies', Handlers.utils.hasMatchingTag('Action', 'FetchReplies'), function(msg)
-    if not Replies[msg.Parent] then
-        ao.send({
-            Target = msg.From,
-            Data = json.encode({})
-        });
-    end
-    local _Replies = Fetch(Replies[msg.Parent], Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
+    local _Memes = Fetch(Memes, Utils.toNumber(msg.Page), Utils.toNumber(msg.Size));
     local Results = {};
-    for i, v in ipairs(_Replies) do
-        if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
-        v.Profile = Profiles[v.Creator];
-        table.insert(Results, v);
+    for i, v in ipairs(_Memes) do
+        if v.IsActive and v.Parent == msg.Parent then
+            if not Profiles[v.Creator] then Profiles[v.Creator] = {} end;
+            v.Profile = Profiles[v.Creator];
+            v.Analytics = AnalyticsData(v.Pool, msg.Timestamp);
+            table.insert(Results, v); 
+        end
     end;
     ao.send({
         Target = msg.From,
-        Data = json.encode(Results)
+        Data = json.encode(_Memes)
     });
 end)
 
@@ -326,7 +328,8 @@ function Reply(pool,parent)
 end
 
 function AnalyticsData(pool, timestamp)
-    local price = 0;
+    --if not Price[pool] then Price[pool] = "0" end;
+    local price = 0 --Utils.toNumber(Price[pool]);
     local supply = Utils.toNumber(TotalSupply[Memes[pool].TokenA]);
     local volume = "0";
     local _buys = "0";
@@ -357,7 +360,6 @@ function AnalyticsData(pool, timestamp)
                     _buys = _buys + 1;
                 end
             end
-            price = Utils.toNumber(Liquidity[pool]) / Utils.toNumber(supply);
             volume = Volume(pool);
             hourVolume = {
                 Now = HourVolume(pool, timestamp),
@@ -381,7 +383,7 @@ function AnalyticsData(pool, timestamp)
         end
     end
 
-    local marketCap = supply * price;
+    local marketCap = Utils.mul(supply,price);
     local data = {
         Liquidty = tostring(math.floor(Liquidity[pool])),
         Volume = tostring(math.floor(Utils.toNumber(volume))),
@@ -389,8 +391,8 @@ function AnalyticsData(pool, timestamp)
         DayVolume = dailyVolume,
         WeekVolume = weeklyVolume,
         MontlyVolume = montlyVolume,
-        MarketCap = marketCap,
-        Price = tostring(price),
+        MarketCap = string.format("%.0f", marketCap),
+        Price = Price[pool],
         Buys = _buys
     };
 

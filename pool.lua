@@ -102,7 +102,7 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
         TokenB = Meme.AmountB,
         Timestamp = msg.Timestamp
     };
-    AdjustLiquidity()
+    --AdjustLiquidity()
     local liquidity = GetLiquidity();
     if liquidity >= Utils.toNumber(BondingCurve) then
         IsPump = false;
@@ -115,7 +115,8 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
         Target = Owner,
         Action = "Swap",
         Swap = json.encode(swap),
-        Liquidity = tostring(liquidity)
+        Liquidity = tostring(liquidity),
+        Price = string.format("%.0f", Utils.div(TokenB,TokenA))
     });
 end)
 
@@ -415,7 +416,7 @@ function DebitNotice(msg)
         end
     end
 
-    AdjustLiquidity();
+    --AdjustLiquidity();
     local liquidity = GetLiquidity();
     if liquidity >= Utils.toNumber(BondingCurve) then
         IsPump = false;
@@ -428,7 +429,8 @@ function DebitNotice(msg)
         Target = Owner,
         Action = "Swap",
         Swap = json.encode(swap),
-        Liquidity = tostring(liquidity)
+        Liquidity = tostring(liquidity),
+        Price = string.format("%.0f", Utils.div(TokenB,TokenA))
     });
 end
 
@@ -542,7 +544,19 @@ function GetSwapTokenBEstimate(amount)
 end
 
 function Price()
+    --local k = 1 -- Example scaling constant
+    --local n = 0.5 -- Example exponent (square root relationship)
     return Utils.mul(TokenA, TokenB);
+
+     -- Ensure TokenA is non-negative
+    --[[if Utils.toNumber(TokenA) < 0 then
+        error("TokenA must be non-negative")
+    end
+
+    -- Calculate price using the power curve formula
+    local price = k * (Utils.toNumber(TokenA) ^ n)
+    
+    return price]]--
 end
 
 function AddBalance(owner, token, amount)
@@ -571,7 +585,7 @@ end
 
 -- Function to adjust the pool to maintain a 1:1 ratio
 function AdjustLiquidity()
-    local targetRatio = 1  -- Target ratio of 1:1
+    local targetRatio = 0.1  -- Target ratio of 1:1
     local _TokenA = Utils.toNumber(TokenA);
     local _TokenB = Utils.toNumber(TokenB);
     -- Calculate the current ratio of tokenA to tokenB
