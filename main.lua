@@ -357,7 +357,7 @@ function AnalyticsData(pool, timestamp)
                     _buys = _buys + 1;
                 end
             end
-            price = Liquidity[pool] / supply;
+            price = Utils.toNumber(Liquidity[pool]) / Utils.toNumber(supply);
             volume = Volume(pool);
             hourVolume = {
                 Now = HourVolume(pool, timestamp),
@@ -390,7 +390,7 @@ function AnalyticsData(pool, timestamp)
         WeekVolume = weeklyVolume,
         MontlyVolume = montlyVolume,
         MarketCap = marketCap,
-        Price = price,
+        Price = tostring(price),
         Buys = _buys
     };
 
