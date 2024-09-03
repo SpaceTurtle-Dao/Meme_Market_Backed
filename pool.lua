@@ -92,6 +92,11 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
         Quantity = Meme.AmountA,
     });
     ao.send({
+        Target = TokenAProcess,
+        Action = "Init",
+        Meme = json.encode(Meme)
+    });
+    ao.send({
         Target = Owner,
         Action = "Activate",
         TokenA = TokenAProcess,
@@ -116,7 +121,7 @@ Handlers.add('Activate', Handlers.utils.hasMatchingTag('Action', 'Activate'), fu
         Action = "Swap",
         Swap = json.encode(swap),
         Liquidity = tostring(liquidity),
-        Price = string.format("%.0f", Utils.div(TokenB,TokenA))
+        Price = string.format("%.0f", math.floor(Utils.toNumber(TokenB)/Utils.toNumber(TokenA)))
     });
 end)
 
@@ -131,7 +136,7 @@ Handlers.add("Remove", Handlers.utils.hasMatchingTag('Action', "Remove"), functi
     Remove(msg.From, msg.share)
 end);
 
-Handlers.add("SwapA", Handlers.utils.hasMatchingTag('Action', "SwapA"), function(msg)
+--[[Handlers.add("SwapA", Handlers.utils.hasMatchingTag('Action', "SwapA"), function(msg)
     assert(IsActive, "Pool must be active")
     SwapA(msg.From, msg.amount, msg.slippage, msg.Timestamp);
 end);
@@ -139,7 +144,7 @@ end);
 Handlers.add("SwapB", Handlers.utils.hasMatchingTag('Action', "SwapB"), function(msg)
     assert(IsActive, "Pool must be active")
     SwapB(msg.From, msg.amount, msg.slippage, msg.Timestamp);
-end)
+end)]]--
 
 Handlers.add('Balance', Handlers.utils.hasMatchingTag('Action', 'Balance'), function(msg)
     Balance(msg)
@@ -268,7 +273,7 @@ function SwapA(from, amount, slippage)
         });
         return
     end;
-    local estimate = GetSwapTokenBEstimate(amount);
+    local estimate = GetSwapTokenAEstimate(amount);
     if estimate <= Utils.toNumber(slippage) then
         Utils.result(from, 403, "slippage " .. estimate)
         ao.send({
@@ -430,7 +435,7 @@ function DebitNotice(msg)
         Action = "Swap",
         Swap = json.encode(swap),
         Liquidity = tostring(liquidity),
-        Price = string.format("%.0f", Utils.div(TokenB,TokenA))
+        Price = string.format("%.0f", math.floor(Utils.toNumber(TokenB)/Utils.toNumber(TokenA)))
     });
 end
 

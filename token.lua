@@ -56,14 +56,14 @@ local utils = {
 Variant = "0.0.3"
 
 -- token should be idempotent and not change previous state updates
-Minter = "WPyLgOqELOyN_BoTNdeEMZp5sz3RxDL19IGcs3A9IPc"
+Minter = ""
 Denomination = 12
 Balances = {}
 TotalSupply = 0
-Name = "Test"
-Ticker = "Test"
-Logo = "-RmetHQufxWySiJact95a9ON6pb-0s56dElmyJusGwQ"
-Description = "Test token"
+Name = ""
+Ticker = ""
+Logo = ""
+Description = ""
 
 --[[
      Add handlers for each incoming Action defined by the ao Standard Token Specification
@@ -74,6 +74,21 @@ Description = "Test token"
      Info
    ]]
 --
+
+Handlers.add('init', Handlers.utils.hasMatchingTag('Action', 'Init'), function(msg)
+    assert(msg.From == Owner, "Not Authorized");
+    local meme = json.decode(msg.Meme);
+    if meme.Post.Kind == "0" then
+        local content = json.decode(meme.Post.Content)
+        Minter = Owner;
+        Name = meme.Name;
+        Ticker = meme.Name;
+        Logo = content.media;
+        Description = content.content;
+        Denomination = utils.toNumber(meme.Denomination);
+    end
+end)
+
 Handlers.add('info', Handlers.utils.hasMatchingTag('Action', 'Info'), function(msg)
     ao.send({
         Action = "Info",

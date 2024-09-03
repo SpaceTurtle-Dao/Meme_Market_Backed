@@ -35,7 +35,7 @@ if not TotalSupply then TotalSupply = {}; end
 ProfileMemes = {}
 Memes = {}
 Replies = {}
-MIP_ID = 0]] --
+MIP_ID = 0]]--
 
 Handlers.add('Spawned', Handlers.utils.hasMatchingTag('Action', 'Spawned'), function(msg)
     assert(msg.From == ao.id, "Not Authorized");
@@ -338,7 +338,7 @@ end
 
 function AnalyticsData(pool, timestamp)
     --if not Price[pool] then Price[pool] = "0" end;
-    local price = 0 --Utils.toNumber(Price[pool]);
+    local price = 0;
     local supply = Utils.toNumber(TotalSupply[Memes[pool].TokenA]);
     local volume = "0";
     local _buys = "0";
@@ -369,6 +369,7 @@ function AnalyticsData(pool, timestamp)
                     _buys = _buys + 1;
                 end
             end
+            price = Utils.toNumber(_swaps[#_swaps].TokenB) / Utils.toNumber(_swaps[#_swaps].TokenA);
             volume = Volume(pool);
             hourVolume = {
                 Now = HourVolume(pool, timestamp),
@@ -392,7 +393,7 @@ function AnalyticsData(pool, timestamp)
         end
     end
 
-    local marketCap = Utils.mul(supply, price);
+    local marketCap = supply * price;
     local data = {
         Liquidty = tostring(math.floor(Liquidity[pool])),
         Volume = tostring(math.floor(Utils.toNumber(volume))),
@@ -401,7 +402,7 @@ function AnalyticsData(pool, timestamp)
         WeekVolume = weeklyVolume,
         MontlyVolume = montlyVolume,
         MarketCap = string.format("%.0f", marketCap),
-        Price = Price[pool],
+        Price = price,
         Buys = _buys
     };
 
